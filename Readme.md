@@ -6,9 +6,10 @@
 
 ## ⚙️ Tech Stack
 
-- ⚡️ [Fastify](https://www.fastify.io/) – Fast and low-overhead web framework
+- ⚡️ [Fastify](https://fastify.dev/) – Fast and low-overhead web framework
 - 🧠 Node.js – JavaScript runtime
 - 📦 MongoDB – NoSQL database for storing users, tweets, etc.
 - 🔐 JWT – Secure user authentication
 - 🧾 Mongoose – Elegant MongoDB object modeling
-- 📡 WebSockets – For real-time tweet updates (optional)
+<!-- - 📡 WebSockets – For real-time tweet updates (optional) -->
+<!-- This project uses [Swagger](https://swagger.io/) for API documentation. -->
