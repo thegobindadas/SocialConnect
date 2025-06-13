@@ -13,12 +13,16 @@ const postSchema = new Schema({
         type: Boolean,
         default: true
     },
-    author: {
+    authorId: {
         type: Schema.Types.ObjectId,
         ref: "User",
         required: true
     }
-})
+}, { timestamps: true })
+
+
+postSchema.index({ authorId: 1 });
+postSchema.index({ createdAt: -1 });
 
 
 

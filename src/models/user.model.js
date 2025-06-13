@@ -52,7 +52,7 @@ const userSchema  = new Schema ({
     refreshToken: String,
     resetPasswordToken: String,
     resetPasswordExpiry: Date,
-}, {timestamps: true})
+}, { timestamps: true })
 
 
 userSchema.pre("save", async function(next) {
