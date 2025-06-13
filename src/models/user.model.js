@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types } from "mongoose";
 import bcrypt from "bcrypt";
-import { SECURITY } from "../constants";
+import { SECURITY } from "../constants.js";
 
 
 const userSchema  = new Schema ({
