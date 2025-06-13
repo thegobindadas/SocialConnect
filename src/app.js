@@ -2,7 +2,9 @@ import Fastify from "fastify";
 import fastifyEnv from "@fastify/env";
 import cors from "@fastify/cors";
 import fastifySensible from "@fastify/sensible";
+import fastifyCookie from "@fastify/cookie";
 import mongodbPlugin from "./plugin/mongodb.js";
+import authPlugin from "./plugin/auth.js"
 
 
 const fastify = Fastify({
@@ -11,10 +13,7 @@ const fastify = Fastify({
 
 
 
-await fastify.register(cors, { 
-    origin: "*" 
-})
-await fastify.register(fastifySensible)
+
 
 await fastify.register(fastifyEnv, {
     dotenv: true,
@@ -39,9 +38,17 @@ await fastify.register(fastifyEnv, {
         console.error(`ENV load failed: ${err.message}`)
         process.exit(1)
     }
-})  
+})
+
+await fastify.register(cors, { 
+    origin: "*" 
+})
+await fastify.register(fastifySensible)
+await fastify.register(fastifyCookie)
+
 
 fastify.register(mongodbPlugin)
+fastify.register(authPlugin)
 
 
 
