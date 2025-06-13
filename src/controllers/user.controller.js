@@ -1,5 +1,7 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { User } from "../models/user.model.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { CLOUD_FOLDERS } from "../constants.js";
 
 
 
@@ -9,10 +11,8 @@ import fs from "fs";
 import { pipeline } from "stream";
 import util from "util";
 import { fileURLToPath } from "url";
-*/
 
 
-/*
 export const registerUser = async (request, reply) => {
     try {
         
@@ -57,3 +57,63 @@ export const registerUser = async (request, reply) => {
 */
 
 
+
+export const registerUser = async (request, reply) => {
+    try {
+
+        const parts = request.parts();
+        let fields = {};
+        let result;
+        
+
+        for await (const part of parts) {
+            if (part.type = "field") {
+                fields[part.fieldname] = part.value;
+            }
+        }
+
+        if (!fields.firstName || !fields.lastName || !fields.email || !fields.username || !fields.password) {
+            return reply.badRequest("All fields are required")
+        }
+        
+
+        const exsistingUser = await User.findOne({ 
+            $or: [{ email: fields.email }, { username: fields.username }] 
+        })
+
+        if (exsistingUser) {
+            return reply.badRequest("User already exists" )
+        }
+console.log("hello 1")        
+
+        for await (const part of parts) {
+            
+            if (part.file) {
+                console.log(part) // logs the file object
+                result = await uploadOnCloudinary(part, "folder");
+
+                if (result) {
+                    fields.profilePic = "none"
+                }
+            } else {
+                return reply.badRequest("Profile photo is required")
+            }
+        }
+
+
+
+        console.log("Fields : ", fields)
+        console.log("photo : ", result)
+
+        
+        
+
+        
+        
+        return reply.send({ message: "User registered successfully" })
+
+    } catch (err) {
+        console.log(err)
+        return reply.internalServerError(err.message || "Error occurred while registering user")
+    }
+}

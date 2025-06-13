@@ -13,7 +13,8 @@ import mongodbPlugin from "./plugin/mongodb.js";
 import authPlugin from "./plugin/auth.js"
 
 
-
+// import routes
+import authRoute from "./routes/user.route.js"
 
 
 
@@ -86,7 +87,8 @@ fastify.register(mongodbPlugin)
 fastify.register(authPlugin)
 
 
-
+// Use Routes
+fastify.register(authRoute, { prefix: "/api/v1/users" });
 
 
 
