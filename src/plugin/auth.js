@@ -8,7 +8,7 @@ export default fastifyPlugin(async (fastify, opts) => {
     fastify.register(fastifyJwt, {
         secret: fastify.config.JWT_SECRET,
         cookie: {
-            cookieName: "refreshToken",
+            cookieName: "accessToken",
         },
         sign: { expiresIn: "1d" }
     })

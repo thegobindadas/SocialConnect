@@ -146,10 +146,152 @@ export const registerUser = async (request, reply) => {
 export const loginUser = async (request, reply) => {
     try {
         
-        return reply.send({ message: "User login successfully" })
+        const { usernameOrEmail, password } = request.body;
+
+        if (!usernameOrEmail) {
+            return reply.badRequest("Email or username is required");
+        }
+
+        if (!password) {
+            return reply.badRequest("Password is required");
+        }
+
+
+        const user = await User.findOne({
+            $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }]
+        })
+
+        if (!user) {
+            return reply.notFound("User not found");
+        }
+
+
+        const isPasswordValid = await user.isPasswordCorrect(password)
+
+        if (!isPasswordValid) {
+            return reply.unauthorized("Invalid password");
+        }
+
+
+        const accessToken = await reply.jwtSign({
+            _id: user._id,
+            username: user.username,
+            email: user.email
+        }, {expiresIn: "1d"})
+
+        const refreshToken = await reply.jwtSign({
+            _id: user._id,
+        }, {expiresIn: "7d"})
+
+
+
+        reply
+            .setCookie("accessToken", accessToken, {
+                secure: false,
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 1,
+            })
+            .setCookie("refreshToken", refreshToken, {
+                //domain: 'your.domain',
+                //path: '/',
+                secure: false, // Set to true in production
+                httpOnly: true,
+                //sameSite: true
+                maxAge: 60 * 60 * 24 * 7,
+            })
+            .send({
+                user: {
+                    _id: user._id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email,
+                    username: user.username,
+                    profilePic: user.profilePic
+                },
+                accessToken,
+                refreshToken,
+                message: "User logged in successfully"
+            })
 
     } catch (err) {
         console.log(err)
-        return reply.internalServerError(err.message || "Error occurred while login user")
+        return reply.internalServerError(err.message || "Error occurred while logging in user ")
+    }
+}
+
+
+export const logoutUser = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
+}
+
+
+export const updateProfilePic = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
+}
+
+
+export const updateUser = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
+}
+
+
+export const updatePassword = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
+}
+
+
+export const forgotPassword = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
+}
+
+
+export const resetPassword = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
+}
+
+
+export const getUserProfile = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
     }
 }
