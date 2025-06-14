@@ -58,6 +58,7 @@ export const registerUser = async (request, reply) => {
 
 
 
+// Registers a new user
 export const registerUser = async (request, reply) => {
     try {
 
@@ -143,6 +144,7 @@ export const registerUser = async (request, reply) => {
 }
 
 
+// Login user
 export const loginUser = async (request, reply) => {
     try {
         
@@ -224,6 +226,7 @@ export const loginUser = async (request, reply) => {
 }
 
 
+// Logout user
 export const logoutUser = async (request, reply) => {
     try {
         
@@ -248,8 +251,14 @@ export const logoutUser = async (request, reply) => {
 
 
         reply
-            .clearCookie("accessToken")
-            .clearCookie("refreshToken")
+            .clearCookie("accessToken", {
+                secure: false,
+                httpOnly: true,
+            })
+            .clearCookie("refreshToken", {
+                secure: false,
+                httpOnly: true,
+            })
             .send({ message: "Logged out successfully" });
 
     } catch (err) {
@@ -258,13 +267,54 @@ export const logoutUser = async (request, reply) => {
 }
 
 
+// Update password --
 export const updatePassword = async (request, reply) => {
     try {
         
-        
+        const userId = request.user._id
+        const { password, newPassword, confirmNewPassword } = request.body
+
+        if (!userId) {
+            return reply.unauthorized("User not found")
+        }
+
+
+        if (!password || !newPassword || !confirmNewPassword) {
+            return reply.badRequest("All fields are required")
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            return reply.badRequest("New password and confirm new password do not match")
+        }
+
+
+        const user = await User.findById(userId)
+
+        const isPasswordValid = await user.isPasswordCorrect(password)
+
+        if (!isPasswordValid) {
+            return reply.unauthorized("Invalid password")
+        }
+
+        user.password = newPassword
+        await user.save()
+
+
+
+        return reply.send({ 
+            user: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                username: user.username,
+                profilePic: user.profilePic
+            },
+            message: "Password updated successfully" 
+        })
 
     } catch (err) {
-        
+        return reply.createError(500, "Faild to update password")
     }
 }
 
@@ -275,15 +325,9 @@ export const updatePassword = async (request, reply) => {
 
 
 
-export const updateProfilePic = async (request, reply) => {
-    try {
-        
-        
 
-    } catch (err) {
-        
-    }
-}
+
+
 
 
 export const updateUser = async (request, reply) => {
