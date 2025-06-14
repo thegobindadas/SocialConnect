@@ -45,13 +45,15 @@ const userSchema  = new Schema ({
         type: String,
         required: [true, "Password is required"]
     },
-    isVerified: {
-        type: Boolean,
-        default: false
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
     },
     refreshToken: String,
-    resetPasswordToken: String,
-    resetPasswordExpiry: Date,
+    forgotPasswordToken: String,
+    forgotPasswordExpiry: Date,
+    emailVerificationToken: String,
+    emailVerificationExpiry: Date,
 }, { timestamps: true })
 
 

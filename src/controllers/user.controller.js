@@ -184,6 +184,10 @@ export const loginUser = async (request, reply) => {
         }, {expiresIn: "7d"})
 
 
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+
 
         reply
             .setCookie("accessToken", accessToken, {
@@ -214,7 +218,7 @@ export const loginUser = async (request, reply) => {
             })
 
     } catch (err) {
-        console.log(err)
+        console.error(err)
         return reply.internalServerError(err.message || "Error occurred while logging in user ")
     }
 }
@@ -223,12 +227,52 @@ export const loginUser = async (request, reply) => {
 export const logoutUser = async (request, reply) => {
     try {
         
+        const user = request.user
+        
+        const updatedUser = await User.findByIdAndUpdate(
+            user._id, 
+            {
+                $unset: {
+                    refreshToken: 1
+                }
+            },
+            {
+                new: true
+            }
+        )
+
+        if (!updateUser) {
+            return reply.internalServerError("Failed to logout user")
+        }
+
+
+
+        reply
+            .clearCookie("accessToken")
+            .clearCookie("refreshToken")
+            .send({ message: "Logged out successfully" });
+
+    } catch (err) {
+        return reply.createError(500, "Faild to logout user")
+    }
+}
+
+
+export const updatePassword = async (request, reply) => {
+    try {
+        
         
 
     } catch (err) {
         
     }
 }
+
+
+
+
+
+
 
 
 export const updateProfilePic = async (request, reply) => {
@@ -253,15 +297,7 @@ export const updateUser = async (request, reply) => {
 }
 
 
-export const updatePassword = async (request, reply) => {
-    try {
-        
-        
 
-    } catch (err) {
-        
-    }
-}
 
 
 export const forgotPassword = async (request, reply) => {
@@ -294,4 +330,35 @@ export const getUserProfile = async (request, reply) => {
     } catch (err) {
         
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+export const verifyEmail = async (request, reply) => {
+
+}
+
+export const resendEmailVerification = async (request, reply) => {
+
+}
+
+export const refreshAccessToken = async (request, reply) => {
+
+}
+
+export const forgotPasswordRequest = async (request, reply) => {
+
+}
+
+export const resetForgottenPassword = async (request, reply) => {
+
 }
