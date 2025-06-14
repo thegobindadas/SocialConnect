@@ -67,7 +67,9 @@ await fastify.register(cors, {
     origin: "*" 
 })
 await fastify.register(fastifySensible)
-await fastify.register(fastifyCookie)
+await fastify.register(fastifyCookie, {
+  secret: fastify.config.JWT_SECRET,
+})
 await fastify.register(fastifyMultipart, {
     limits: {
         fileSize: 10 * 1024 * 1024,

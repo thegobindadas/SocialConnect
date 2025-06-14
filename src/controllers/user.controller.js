@@ -193,13 +193,14 @@ export const loginUser = async (request, reply) => {
 
         reply
             .setCookie("accessToken", accessToken, {
+                path: "/",
                 secure: false,
                 httpOnly: true,
                 maxAge: 60 * 60 * 24 * 1,
             })
             .setCookie("refreshToken", refreshToken, {
                 //domain: 'your.domain',
-                //path: '/',
+                path: "/",
                 secure: false, // Set to true in production
                 httpOnly: true,
                 //sameSite: true
@@ -244,7 +245,7 @@ export const logoutUser = async (request, reply) => {
             }
         )
 
-        if (!updateUser) {
+        if (!updatedUser) {
             return reply.internalServerError("Failed to logout user")
         }
 
@@ -252,10 +253,12 @@ export const logoutUser = async (request, reply) => {
 
         reply
             .clearCookie("accessToken", {
+                path: "/",
                 secure: false,
                 httpOnly: true,
             })
             .clearCookie("refreshToken", {
+                path: "/",
                 secure: false,
                 httpOnly: true,
             })
@@ -320,6 +323,88 @@ export const updatePassword = async (request, reply) => {
 
 
 
+
+// Updates the profile picture of a user --
+export const updateProfilePic = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("User not found")
+        }
+
+
+        if (!request.isMultipart()) {
+            return reply.badRequest("No file found");
+        }
+
+
+        const parts = request.parts?.();
+
+        let filePart = null;
+
+        for await (const part of parts) {
+            
+            if (part.file && part.mimetype.includes("image")) {
+               
+                filePart = part;
+                break;
+            } else {
+                return reply.badRequest("No file found")
+            }
+        }
+
+
+        if (!filePart) {
+            return reply.badRequest("Profile picture is required");
+        }
+
+        if (!filePart.mimetype.includes("image")) {
+            return reply.badRequest("Only image files are allowed");
+        }
+
+
+
+        const uploadResult = await uploadOnCloudinary(filePart, `fastify-social/${userId}/profile`);
+
+        if (!uploadResult) {
+            return reply.badRequest("Failed to upload profile picture");
+        }
+
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            {
+                profilePic: uploadResult.url,
+            },
+            {
+                new: true,
+            }
+        )
+
+        if (!user) {
+            return reply.unauthorized("User not found")
+        }
+
+
+
+        return reply.send({ 
+            user: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                username: user.username,
+                profilePic: user.profilePic
+            },
+            message: "Profile picture updated successfully" 
+        })
+
+    } catch (err) {
+        reply.createError(500, "Faild to update profile picture")
+    }
+}
 
 
 
