@@ -63,19 +63,31 @@ export const registerUser = async (request, reply) => {
 
         const parts = request.parts();
         let fields = {};
-        let result;
+        let filePart = null;
         
-
+        
         for await (const part of parts) {
-            if (part.type = "field") {
+            if (part.file) {
+               
+                filePart = part;
+                break;
+
+            } else {
+
                 fields[part.fieldname] = part.value;
             }
         }
 
-        if (!fields.firstName || !fields.lastName || !fields.email || !fields.username || !fields.password) {
-            return reply.badRequest("All fields are required")
+
+        // Validate required fields
+        const requiredFields = ["firstName", "lastName", "email", "username", "password"];
+
+        for (const field of requiredFields) {
+            if (!fields[field]) {
+                return reply.badRequest(`${field} is required`);
+            }
         }
-        
+     
 
         const exsistingUser = await User.findOne({ 
             $or: [{ email: fields.email }, { username: fields.username }] 
@@ -84,36 +96,60 @@ export const registerUser = async (request, reply) => {
         if (exsistingUser) {
             return reply.badRequest("User already exists" )
         }
-console.log("hello 1")        
+      
 
-        for await (const part of parts) {
-            
-            if (part.file) {
-                console.log(part) // logs the file object
-                result = await uploadOnCloudinary(part, "folder");
+        if (!filePart) {
+            return reply.badRequest("Profile picture is required");
+        }
 
-                if (result) {
-                    fields.profilePic = "none"
-                }
-            } else {
-                return reply.badRequest("Profile photo is required")
-            }
+        if (!filePart.mimetype.includes("image")) {
+            return reply.badRequest("Only image files are allowed");
         }
 
 
+        const uploadResult = await uploadOnCloudinary(filePart, "fastify-social");
 
-        console.log("Fields : ", fields)
-        console.log("photo : ", result)
+        if (!uploadResult) {
+            return reply.badRequest("Failed to upload profile picture");
+        } else {
+            fields["profilePic"] = uploadResult.url
+        }
+
+
+        const user = await User.create(fields)
+
+        if(!user) {
+            return reply.badRequest("Failed to create user")
+        }
+
 
         
-        
-
-        
-        
-        return reply.send({ message: "User registered successfully" })
+        return reply.code(201).send({
+            user: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                username: user.username,
+                profilePic: user.profilePic
+            },
+            message: "User registered successfully" 
+        })
 
     } catch (err) {
         console.log(err)
         return reply.internalServerError(err.message || "Error occurred while registering user")
+    }
+}
+
+
+export const loginUser = async (request, reply) => {
+    try {
+        
+        return reply.send({ message: "User login successfully" })
+
+    } catch (err) {
+        console.log(err)
+        return reply.internalServerError(err.message || "Error occurred while login user")
     }
 }

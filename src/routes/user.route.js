@@ -1,6 +1,6 @@
 import { 
     registerUser,
-    
+    loginUser,
 } from "../controllers/user.controller.js";
 
 
@@ -9,6 +9,8 @@ import {
 export default async function (fastify, opts) {
 
     fastify.post("/register", registerUser);
+
+    fastify.post("/login", loginUser);
 
 
 }
