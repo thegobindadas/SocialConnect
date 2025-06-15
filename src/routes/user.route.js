@@ -5,6 +5,7 @@ import {
     updateCurrentPassword,
     updateUserProfilePic,
     getCurrentUser,
+    updateUserProfile,
 } from "../controllers/user.controller.js";
 
 
@@ -24,4 +25,5 @@ export default async function (fastify, opts) {
 
     fastify.get("/me", {preHandler: [fastify.authenticate]}, getCurrentUser);
 
+    fastify.post("/update/profile", {preHandler: [fastify.authenticate]}, updateUserProfile);
 }

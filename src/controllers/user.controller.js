@@ -281,7 +281,7 @@ export const updateCurrentPassword = async (request, reply) => {
         const { password, newPassword, confirmNewPassword } = request.body
 
         if (!userId) {
-            return reply.unauthorized("User not found")
+            return reply.unauthorized("Unauthorized to update password")
         }
 
 
@@ -295,6 +295,11 @@ export const updateCurrentPassword = async (request, reply) => {
 
 
         const user = await User.findById(userId)
+
+        if (!user) {
+            return reply.notFound("User not found")
+        }
+
 
         const isPasswordValid = await user.isPasswordCorrect(password)
 
@@ -388,7 +393,7 @@ export const updateUserProfilePic = async (request, reply) => {
         )
 
         if (!user) {
-            return reply.unauthorized("User not found")
+            return reply.notFound("User not found")
         }
 
 
@@ -428,7 +433,7 @@ export const getCurrentUser = async (request, reply) => {
         const user = await User.findById(userId)
 
         if (!user) {
-            return reply.unauthorized("User not found")
+            return reply.notFound("User not found")
         }
         
 
@@ -456,20 +461,73 @@ export const getCurrentUser = async (request, reply) => {
 
 
 
-
-
-
-
-
-
 // Updates user information based on the provided request data. --> TODO
-export const updateUser = async (request, reply) => {
+export const updateUserProfile = async (request, reply) => {
     try {
         
-        
+        const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to update profile")
+        }
+
+
+        const { firstName, lastName, username, tagline, bio, portfolioUrl } = request.body
+
+
+        const user = await User.findById(userId)
+
+        if (!user) {
+            return reply.notFound("User not found")
+        }
+
+
+        if (firstName) {
+            user.firstName = firstName
+        }
+
+        if (lastName) {
+            user.lastName = lastName
+        }
+
+        if (tagline !== undefined) user.tagline = tagline;
+        if (bio !== undefined) user.bio = bio;
+        if (portfolioUrl !== undefined) user.portfolioUrl = portfolioUrl;
+
+
+        if (username && username !== user.username) {
+
+            const existingUser = await User.findOne({ username })
+
+            if (existingUser && existingUser._id.toString() !== userId) {
+                return reply.badRequest("Username already exists")
+            }
+            
+            user.username = username
+        }
+
+
+        await user.save()
+
+
+
+        return reply.send({
+            user: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                username: user.username,
+                tagline: user.tagline  || null,
+                bio: user.bio || null,
+                profilePic: user.profilePic,
+                portfolioUrl: user.portfolioUrl || null,
+            },
+            message: "User updated successfully"
+        })
 
     } catch (err) {
-        
+        return reply.createError(500, "Failed to update user.")
     }
 }
 
@@ -480,15 +538,13 @@ export const updateUser = async (request, reply) => {
 
 
 
-export const getUserProfile = async (request, reply) => {
-    try {
-        
-        
 
-    } catch (err) {
-        
-    }
-}
+
+
+
+
+
+
 
 
 export const verifyEmail = async (request, reply) => {
@@ -499,9 +555,7 @@ export const resendEmailVerification = async (request, reply) => {
 
 }
 
-export const refreshAccessToken = async (request, reply) => {
 
-}
 
 export const forgotPasswordRequest = async (request, reply) => {
 
@@ -509,4 +563,20 @@ export const forgotPasswordRequest = async (request, reply) => {
 
 export const resetForgottenPassword = async (request, reply) => {
 
+}
+
+
+export const refreshAccessToken = async (request, reply) => {
+
+}
+
+
+export const getUserProfile = async (request, reply) => {
+    try {
+        
+        
+
+    } catch (err) {
+        
+    }
 }
