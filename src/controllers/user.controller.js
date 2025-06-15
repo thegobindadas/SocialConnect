@@ -2,6 +2,43 @@ import mongoose, { isValidObjectId } from "mongoose";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
+import hashToken from "../utils/hashToken.js";
+
+
+
+const generateAccessAndRefreshToken = async (reply, user) => {
+    try {
+        
+        const accessToken = await reply.accessJwtSign(
+            {
+                _id: user._id,
+                username: user.username,
+                email: user.email
+            }, 
+            {
+                secret: process.env.ACCESS_TOKEN_SECRET,
+                expiresIn: "1d"
+            }
+        )
+
+        const refreshToken = await reply.refreshJwtSign(
+            {
+                _id: user._id,
+            }, 
+            {
+                secret: process.env.REFRESH_TOKEN_SECRET,
+                expiresIn: "7d"
+            }
+        )
+
+
+
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        return reply.createError(500, "Failed to generate access and refresh token")
+    }
+}
 
 
 
@@ -55,7 +92,6 @@ export const registerUser = async (request, reply) => {
     }
 }
 */
-
 
 
 // Registers a new user
@@ -175,18 +211,11 @@ export const loginUser = async (request, reply) => {
         }
 
 
-        const accessToken = await reply.jwtSign({
-            _id: user._id,
-            username: user.username,
-            email: user.email
-        }, {expiresIn: "1d"})
-
-        const refreshToken = await reply.jwtSign({
-            _id: user._id,
-        }, {expiresIn: "7d"})
+        // Generate JWT token
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(reply, user)
 
 
-        user.refreshToken = refreshToken
+        user.refreshToken = hashToken(refreshToken)
         await user.save({ validateBeforeSave: false })
 
 
@@ -518,6 +547,70 @@ export const updateUserProfile = async (request, reply) => {
 }
 
 
+// Refreshes an access token using the refresh token
+export const refreshAccessToken = async (request, reply) => {
+    try {
+        
+        const incomingRefreshToken = request.cookies?.refreshToken || request.body?.refreshToken || request.header("Authorization")?.replace("Bearer ", "")
+
+        if (!incomingRefreshToken) {
+            return reply.unauthorized("Unauthorized request. Refresh token is required")
+        }
+
+
+        const decodedToken = await request.refreshJwtVerify(incomingRefreshToken)
+
+        if (!decodedToken) {
+            return reply.unauthorized("Invalid or expired refresh token. Please log in again.")
+        }
+
+
+        const user = await User.findById(decodedToken._id)
+
+        if (!user) {
+            return reply.notFound("No user found associated with the provided refresh token.")
+        }
+
+
+        if (user.refreshToken !== hashToken(incomingRefreshToken)) {
+            return reply.unauthorized("Invalid or expired refresh token. Please log in again.")
+        }
+
+
+        // Generate JWT token
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(reply, user)
+
+
+        user.refreshToken = hashToken(refreshToken)
+        await user.save({ validateBeforeSave: false })
+
+
+
+        reply
+            .setCookie("accessToken", accessToken, {
+                path: "/",
+                secure: false,
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 1,
+            })
+            .setCookie("refreshToken", refreshToken, {
+                // domain: 'your.domain',
+                // sameSite: true,
+                path: "/",
+                secure: false, // Set to true in production
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 7,
+            })
+            .send({
+                accessToken,
+                refreshToken,
+                message: "Access token refreshed successfully"
+            })
+
+    } catch (error) {
+        return reply.createError(500, "Failed to refresh access token")
+    }
+}
 
 
 
@@ -534,33 +627,24 @@ export const updateUserProfile = async (request, reply) => {
 
 
 export const verifyEmail = async (request, reply) => {
-
 }
-
 export const resendEmailVerification = async (request, reply) => {
-
 }
 
 
 
 export const forgotPasswordRequest = async (request, reply) => {
-
 }
-
 export const resetForgottenPassword = async (request, reply) => {
-
 }
 
-
-export const refreshAccessToken = async (request, reply) => {
-
-}
 
 
 export const getUserProfile = async (request, reply) => {
     try {
         
-        
+        // get First name, Last name, Username, Tagline, Bio, profilePic, Portfolio URL
+        // And get total Followers, Following
 
     } catch (err) {
         

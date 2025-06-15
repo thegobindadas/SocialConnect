@@ -37,10 +37,12 @@ await fastify.register(fastifyEnv, {
         required: [ 
             "PORT", 
             "MONGODB_URI", 
-            "JWT_SECRET", 
+            // "JWT_SECRET",
+            "ACCESS_TOKEN_SECRET",
+            "REFRESH_TOKEN_SECRET",
             "CLOUDINARY_CLOUD_NAME", 
             "CLOUDINARY_API_KEY", 
-            "CLOUDINARY_API_SECRET" 
+            "CLOUDINARY_API_SECRET",
         ],
         properties: {
             PORT: {
@@ -48,7 +50,9 @@ await fastify.register(fastifyEnv, {
                 default: 3000
             },
             MONGODB_URI: { type: "string" },
-            JWT_SECRET: { type: "string" },
+            // JWT_SECRET: { type: "string" },
+            ACCESS_TOKEN_SECRET: { type: "string" },
+            REFRESH_TOKEN_SECRET: { type: "string" },
             CLOUDINARY_CLOUD_NAME: { type: "string" },
             CLOUDINARY_API_KEY: { type: "string" },
             CLOUDINARY_API_SECRET: { type: "string" },
