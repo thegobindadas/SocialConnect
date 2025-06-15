@@ -18,7 +18,7 @@ export default fastifyPlugin(async (fastify, opts) => {
         try {
             await request.jwtVerify({onlyCookie: true})
         } catch (err) {
-            reply.send(err)
+            reply.unauthorized("Authentication required. Please log in.")
         }
     })
 })

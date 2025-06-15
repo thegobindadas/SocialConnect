@@ -234,10 +234,10 @@ export const loginUser = async (request, reply) => {
 export const logoutUser = async (request, reply) => {
     try {
         
-        const user = request.user
+        const userId = request.user._id
         
-        const updatedUser = await User.findByIdAndUpdate(
-            user._id, 
+        const user = await User.findByIdAndUpdate(
+            userId, 
             {
                 $unset: {
                     refreshToken: 1
@@ -248,8 +248,8 @@ export const logoutUser = async (request, reply) => {
             }
         )
 
-        if (!updatedUser) {
-            return reply.internalServerError("Failed to logout user")
+        if (!user) {
+            return reply.notFound("Failed to logout user")
         }
 
 
@@ -278,12 +278,8 @@ export const updateCurrentPassword = async (request, reply) => {
     try {
         
         const userId = request.user._id
+
         const { password, newPassword, confirmNewPassword } = request.body
-
-        if (!userId) {
-            return reply.unauthorized("Unauthorized to update password")
-        }
-
 
         if (!password || !newPassword || !confirmNewPassword) {
             return reply.badRequest("All fields are required")
@@ -338,10 +334,6 @@ export const updateUserProfilePic = async (request, reply) => {
     try {
         
         const userId = request.user._id
-
-        if (!userId) {
-            return reply.unauthorized("User not found")
-        }
 
 
         if (!request.isMultipart()) {
@@ -422,12 +414,8 @@ export const updateUserProfilePic = async (request, reply) => {
 // Returns the current user
 export const getCurrentUser = async (request, reply) => {
     try {
-        
-        const userId = request.user._id
 
-        if (!userId) {
-            return reply.unauthorized("User not logged in")
-        }
+        const userId = request.user._id
 
 
         const user = await User.findById(userId)
@@ -457,8 +445,6 @@ export const getCurrentUser = async (request, reply) => {
         return reply.createError(500, "Failed to get user.")
     }
 }
-
-
 
 
 // Updates user information based on the provided request data. --> TODO
