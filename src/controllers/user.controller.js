@@ -213,7 +213,10 @@ export const loginUser = async (request, reply) => {
                     lastName: user.lastName,
                     email: user.email,
                     username: user.username,
-                    profilePic: user.profilePic
+                    tagline: user.tagline  || null,
+                    bio: user.bio || null,
+                    profilePic: user.profilePic,
+                    portfolioUrl: user.portfolioUrl || null,
                 },
                 accessToken,
                 refreshToken,
@@ -270,8 +273,8 @@ export const logoutUser = async (request, reply) => {
 }
 
 
-// Update password --
-export const updatePassword = async (request, reply) => {
+// Update password
+export const updateCurrentPassword = async (request, reply) => {
     try {
         
         const userId = request.user._id
@@ -311,7 +314,10 @@ export const updatePassword = async (request, reply) => {
                 lastName: user.lastName,
                 email: user.email,
                 username: user.username,
-                profilePic: user.profilePic
+                tagline: user.tagline  || null,
+                bio: user.bio || null,
+                profilePic: user.profilePic,
+                portfolioUrl: user.portfolioUrl || null,
             },
             message: "Password updated successfully" 
         })
@@ -322,10 +328,8 @@ export const updatePassword = async (request, reply) => {
 }
 
 
-
-
-// Updates the profile picture of a user --
-export const updateProfilePic = async (request, reply) => {
+// Updates the profile picture of a user
+export const updateUserProfilePic = async (request, reply) => {
     try {
         
         const userId = request.user._id
@@ -396,13 +400,56 @@ export const updateProfilePic = async (request, reply) => {
                 lastName: user.lastName,
                 email: user.email,
                 username: user.username,
-                profilePic: user.profilePic
+                tagline: user.tagline  || null,
+                bio: user.bio || null,
+                profilePic: user.profilePic,
+                portfolioUrl: user.portfolioUrl || null,
             },
             message: "Profile picture updated successfully" 
         })
 
     } catch (err) {
         reply.createError(500, "Faild to update profile picture")
+    }
+}
+
+
+// Returns the current user
+export const getCurrentUser = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("User not logged in")
+        }
+
+
+        const user = await User.findById(userId)
+
+        if (!user) {
+            return reply.unauthorized("User not found")
+        }
+        
+
+
+        return reply.send({
+            user: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                username: user.username,
+                tagline: user.tagline  || null,
+                bio: user.bio || null,
+                profilePic: user.profilePic,
+                portfolioUrl: user.portfolioUrl || null,
+            },
+            message: "User found successfully"
+        })
+
+    } catch (err) {
+        return reply.createError(500, "Failed to get user.")
     }
 }
 
@@ -415,6 +462,7 @@ export const updateProfilePic = async (request, reply) => {
 
 
 
+// Updates user information based on the provided request data. --> TODO
 export const updateUser = async (request, reply) => {
     try {
         
@@ -429,26 +477,7 @@ export const updateUser = async (request, reply) => {
 
 
 
-export const forgotPassword = async (request, reply) => {
-    try {
-        
-        
 
-    } catch (err) {
-        
-    }
-}
-
-
-export const resetPassword = async (request, reply) => {
-    try {
-        
-        
-
-    } catch (err) {
-        
-    }
-}
 
 
 export const getUserProfile = async (request, reply) => {
@@ -460,16 +489,6 @@ export const getUserProfile = async (request, reply) => {
         
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 export const verifyEmail = async (request, reply) => {
