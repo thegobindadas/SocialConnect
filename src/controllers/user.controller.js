@@ -427,19 +427,24 @@ export const updateUserProfilePic = async (request, reply) => {
         }
 
 
+        let profilePic = {};
         const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
 
         const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
 
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");
+        } else {
+            profilePic["url"] = uploadResult.url
+            profilePic["publicId"] = uploadResult.public_id
+            profilePic["type"] = uploadResult.resource_type
         }
 
 
         const user = await User.findByIdAndUpdate(
             userId,
             {
-                profilePic: uploadResult.url,
+                profilePic,
             },
             {
                 new: true,
