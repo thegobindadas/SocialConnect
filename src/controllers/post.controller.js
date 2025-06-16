@@ -137,7 +137,7 @@ export const togglePostPublishStatus = async (request, reply) => {
 
         return reply.send({
             post,
-            message: "Post updated successfully",
+            message: "Post updated published status successfully",
         })
 
     } catch (error) {
@@ -146,10 +146,58 @@ export const togglePostPublishStatus = async (request, reply) => {
 }
 
 
+export const updatePost = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to create a post")
+        }
+
+
+        const postId = request.params.postId
+
+        if (!postId) {
+            return reply.badRequest("Post id is required")
+        }
+
+        if (!isValidObjectId(postId)) {
+            return reply.badRequest("Invalid post id")
+        }
+
+
+        const post = await Post.findById(postId)
+
+        if (!post) {
+            return reply.notFound("Post not found")            
+        }
+
+        if(post.authorId.toString() !== userId) {
+            return reply.unauthorized("Unauthorized to update this post")
+        }
+
+
+        const { content, tags, link } = request.body
+
+
+        post.content = content || post.content
+        if (tags !== undefined) post.tags = tags
+        if (link !== undefined) post.link = link
+
+        await post.save()
 
 
 
-export const updatePost = async (request, reply) => {}
+        return reply.send({
+            post,
+            message: "Post updated successfully",
+        });
+        
+    } catch (error) {
+        return reply.createError(500, "Failed to update a post")
+    }
+}
 
 
 
@@ -163,3 +211,5 @@ export const updatePost = async (request, reply) => {}
 export const getPostById = async (request, reply) => {}
 export const deletePost = async (request, reply) => {}
 export const getAllPosts = async (request, reply) => {}
+export const updatePostMedia = async (request, reply) => {}
+export const deletePostMedia = async (request, reply) => {}
