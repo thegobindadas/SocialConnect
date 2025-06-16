@@ -117,6 +117,7 @@ export const registerUser = async (request, reply) => {
 
         const parts = request.parts();
         let fields = {};
+        let profilePic = {};
         let filePart = null;
         
         
@@ -162,7 +163,7 @@ export const registerUser = async (request, reply) => {
 
 
         const userId = new mongoose.Types.ObjectId().toHexString();
-        const folder = `${CLOUD_FOLDERS.MAIN}/${userId}`;
+        const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
 
 
         const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
@@ -170,11 +171,21 @@ export const registerUser = async (request, reply) => {
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");
         } else {
-            fields["profilePic"] = uploadResult.url
+            profilePic["url"] = uploadResult.url
+            profilePic["publicId"] = uploadResult.public_id
+            profilePic["type"] = uploadResult.resource_type
         }
 
 
-        const user = await User.create(fields)
+        const user = await User.create({
+            _id: userId,
+            firstName: fields.firstName,
+            lastName: fields.lastName,
+            email: fields.email,
+            username: fields.username,
+            profilePic: profilePic || null,
+            password: fields.password,
+        })
 
         if(!user) {
             return reply.badRequest("Failed to create user")
@@ -189,7 +200,7 @@ export const registerUser = async (request, reply) => {
                 lastName: user.lastName,
                 email: user.email,
                 username: user.username,
-                profilePic: user.profilePic
+                profilePic: user.profilePic || null
             },
             message: "User registered successfully" 
         })
@@ -419,7 +430,7 @@ export const updateUserProfilePic = async (request, reply) => {
         const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
 
         const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
-console.log(uploadResult);
+
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");
         }

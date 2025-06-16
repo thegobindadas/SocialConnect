@@ -37,8 +37,19 @@ const userSchema  = new Schema ({
     tagline: String,
     bio: String,
     profilePic: {
-        type: String, // cloudinary url
-        required: true,
+        url: { // cloudinary url of profile pic
+            type: String,
+            required: true
+        },
+        publicId: {
+            type: String,
+            required: true
+        },
+        type: {
+            type: String,
+            enum: ["image", "video"],
+            required: true
+        },
     },
     portfolioUrl: String,
     password: {
