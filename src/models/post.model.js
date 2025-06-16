@@ -4,11 +4,28 @@ import mongoose, { Schema } from "mongoose";
 const postSchema = new Schema({
     content: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
-    tags: String,
-    link: String,
-    mediaUrls: [String],
+    tags: {
+        type: String,
+        trim: true
+    },
+    link: {
+        type: String,
+        trim: true
+    },
+    mediaUrls: [{
+        url: {
+            type: String,
+            required: true
+        },
+        type: {
+            type: String,
+            enum: ["image", "video"],
+            required: true
+        }
+    }],
     isPublished: {
         type: Boolean,
         default: true

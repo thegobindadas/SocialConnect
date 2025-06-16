@@ -6,6 +6,16 @@ import hashToken from "../utils/hashToken.js";
 
 
 
+/**
+ * Generates access and refresh tokens using the provided user's data and the
+ * environment variables for the access and refresh token secrets.
+ *
+ * @param {FastifyReply} reply - The Fastify reply object.
+ * @param {User} user - The user document from the database.
+ *
+ * @returns {Promise<{ accessToken: string, refreshToken: string }>} - A promise
+ * that resolves with an object containing the generated access and refresh tokens.
+ */
 const generateAccessAndRefreshToken = async (reply, user) => {
     try {
         
@@ -94,7 +104,14 @@ export const registerUser = async (request, reply) => {
 */
 
 
-// Registers a new user
+
+/**
+ * Registers a new user
+ * @param {FastifyRequest} request - The request
+ * @param {FastifyReply} reply - The reply
+ * @returns {Promise<void>}
+ */
+
 export const registerUser = async (request, reply) => {
     try {
 
@@ -144,7 +161,7 @@ export const registerUser = async (request, reply) => {
         }
 
 
-        const uploadResult = await uploadOnCloudinary(filePart, "fastify-social");
+        const uploadResult = await uploadOnCloudinary(request.server, filePart, "fastify-social");
 
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");
@@ -375,7 +392,7 @@ export const updateUserProfilePic = async (request, reply) => {
         let filePart = null;
 
         for await (const part of parts) {
-            
+           
             if (part.file && part.mimetype.includes("image")) {
                
                 filePart = part;
@@ -396,7 +413,7 @@ export const updateUserProfilePic = async (request, reply) => {
 
 
 
-        const uploadResult = await uploadOnCloudinary(filePart, `fastify-social/${userId}/profile`);
+        const uploadResult = await uploadOnCloudinary(request.server, filePart, `fastify-social/${userId}/profile`);
 
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");

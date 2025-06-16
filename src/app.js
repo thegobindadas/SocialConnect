@@ -14,7 +14,8 @@ import authPlugin from "./plugin/auth.js"
 
 
 // import routes
-import authRoute from "./routes/user.route.js"
+import authRoute from "./routes/user.route.js";
+import postRoute from "./routes/post.route.js";
 
 
 
@@ -95,6 +96,7 @@ fastify.register(authPlugin)
 
 // Use Routes
 fastify.register(authRoute, { prefix: "/api/v1/users" });
+fastify.register(postRoute, { prefix: "/api/v1/posts" });
 
 
 
