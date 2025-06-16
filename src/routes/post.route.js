@@ -1,5 +1,6 @@
 import { 
     createANewPost,
+    togglePostPublishStatus,
 } from "../controllers/post.controller.js";
 
 
@@ -14,6 +15,8 @@ export default async function (fastify, opts) {
 
 
         fastify.post("/", createANewPost);
+
+        fastify.patch("/:postId/publish-toggle", togglePostPublishStatus);
 
     })
 }
