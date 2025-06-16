@@ -1,6 +1,6 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
 import hashToken from "../utils/hashToken.js";
 
@@ -390,7 +390,15 @@ export const updateCurrentPassword = async (request, reply) => {
 }
 
 
-// Updates the profile picture of a user
+/**
+ * Updates the profile picture of a user
+ * 
+ * @function updateUserProfilePic
+ * @memberof module:controllers/user.controller
+ * @param {FastifyRequest} request - The Fastify request object.
+ * @param {FastifyReply} reply - The Fastify reply object.
+ * @returns {Promise<FastifyReply>} - A promise that resolves with the updated user object and a message.
+ */
 export const updateUserProfilePic = async (request, reply) => {
     try {
         
@@ -427,7 +435,15 @@ export const updateUserProfilePic = async (request, reply) => {
         }
 
 
+        const user = await User.findById(userId)
+
+        if (!user) {
+            return reply.notFound("User not found")
+        }
+
+
         let profilePic = {};
+
         const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
 
         const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
@@ -441,33 +457,41 @@ export const updateUserProfilePic = async (request, reply) => {
         }
 
 
-        const user = await User.findByIdAndUpdate(
-            userId,
+        const updatedUser = await User.findByIdAndUpdate(
+            userId, 
             {
-                profilePic,
-            },
+                $set: {
+                    profilePic: profilePic
+                }
+            }, 
             {
-                new: true,
+                new: true
             }
         )
 
-        if (!user) {
-            return reply.notFound("User not found")
+
+        let deletePhotoResult;
+        if (user.profilePic.publicId && user.profilePic.type) {
+            deletePhotoResult = await deleteFromCloudinary(request.server, user.profilePic.publicId, user.profilePic.type)
+        }
+
+        if (deletePhotoResult.result !== "ok") {
+            throw new Error(`Failed to delete photo from cloudinary: ${result.result}`);
         }
 
 
 
         return reply.send({ 
             user: {
-                _id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                username: user.username,
-                tagline: user.tagline  || null,
-                bio: user.bio || null,
-                profilePic: user.profilePic,
-                portfolioUrl: user.portfolioUrl || null,
+                _id: updatedUser._id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                username: updatedUser.username,
+                tagline: updatedUser.tagline  || null,
+                bio: updatedUser.bio || null,
+                profilePic: updatedUser.profilePic,
+                portfolioUrl: updatedUser.portfolioUrl || null,
             },
             message: "Profile picture updated successfully" 
         })

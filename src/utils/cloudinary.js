@@ -26,11 +26,7 @@ export const deleteFromCloudinary = async (fastify, publicId, resourceType = "im
             resource_type: resourceType, // "image", "video", or "raw"
         });
 
-        if (result.result !== "ok") {
-            throw new Error(`Failed to delete: ${result.result}`);
-        }
-
-
+        
 
         return result;
 
