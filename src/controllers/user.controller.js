@@ -161,7 +161,11 @@ export const registerUser = async (request, reply) => {
         }
 
 
-        const uploadResult = await uploadOnCloudinary(request.server, filePart, "fastify-social");
+        const userId = new mongoose.Types.ObjectId().toHexString();
+        const folder = `${CLOUD_FOLDERS.MAIN}/${userId}`;
+
+
+        const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
 
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");
@@ -412,9 +416,10 @@ export const updateUserProfilePic = async (request, reply) => {
         }
 
 
+        const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
 
-        const uploadResult = await uploadOnCloudinary(request.server, filePart, `fastify-social/${userId}/profile`);
-
+        const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
+console.log(uploadResult);
         if (!uploadResult) {
             return reply.badRequest("Failed to upload profile picture");
         }

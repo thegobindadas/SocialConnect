@@ -1,4 +1,5 @@
-
+// public_id: 'fastify-social/684efc6d38e4d7c4538b1ddb/@profile/daltfnnuvxajq4hqz9nh',
+// folder: 'fastify-social/684efc6d38e4d7c4538b1ddb/@profile',
 
 
 export const uploadOnCloudinary = async (fastify, part, folder) => {
@@ -16,3 +17,24 @@ export const uploadOnCloudinary = async (fastify, part, folder) => {
 
     return result
 }
+
+
+export const deleteFromCloudinary = async (fastify, publicId, resourceType = "image") => {
+    try {
+
+        const result = await fastify.cloudinary.uploader.destroy(publicId, {
+            resource_type: resourceType, // "image", "video", or "raw"
+        });
+
+        if (result.result !== "ok") {
+            throw new Error(`Failed to delete: ${result.result}`);
+        }
+
+
+
+        return result;
+
+    } catch (error) {
+        throw new Error(`Cloudinary deletion error: ${error.message}`);
+    }
+};

@@ -20,6 +20,10 @@ const postSchema = new Schema({
             type: String,
             required: true
         },
+        publicId: {
+            type: String,
+            required: true
+        },
         type: {
             type: String,
             enum: ["image", "video"],
