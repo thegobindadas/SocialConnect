@@ -1,5 +1,6 @@
 import {
     bookmarkUnBookmarkPost,
+    getMyBookmarkPosts,
 } from "../controllers/bookmark.controller.js";
 
 
@@ -15,5 +16,7 @@ export default async function (fastify, opts) {
 
 
         fastify.post("/:postId", bookmarkUnBookmarkPost);
+
+        fastify.get("/", getMyBookmarkPosts);
     })
 }

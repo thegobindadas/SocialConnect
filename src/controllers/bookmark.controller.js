@@ -3,6 +3,18 @@ import { Bookmark } from "../models/bookmark.model";
 
 
 
+
+
+/**
+ * Toggles the bookmark status of a post for the current user.
+ * 
+ * @function bookmarkUnBookmarkPost
+ * @param {FastifyRequest} request - The Fastify request object containing the user and post IDs.
+ * @param {FastifyReply} reply - The Fastify reply object for sending responses.
+ * 
+ * @returns {Promise<void>} - Sends a response with a success message and status indicating whether 
+ * the post was bookmarked or unbookmarked. If an error occurs, sends an appropriate error message.
+ */
 export const bookmarkUnBookmarkPost = async (request, reply) => {
     try {
         
@@ -73,6 +85,13 @@ export const bookmarkUnBookmarkPost = async (request, reply) => {
 }
 
 
+
+/**
+ * Returns an array of posts bookmarked by the current user
+ * @param {FastifyRequest} request
+ * @param {FastifyReply} reply
+ * @returns {Promise<import("http").ServerResponse>} response
+ */
 const getMyBookmarkPosts = async (request, reply) => {
     try {
         

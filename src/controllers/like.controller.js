@@ -1,0 +1,169 @@
+import mongoose, { isValidObjectId } from "mongoose";
+import { Like } from "../models/like.model";
+
+
+
+
+
+/**
+ * Toggles the like status of a post for the current user.
+ * 
+ * @function likeDislikePost
+ * @param {FastifyRequest} request - The Fastify request object containing the user and post IDs.
+ * @param {FastifyReply} reply - The Fastify reply object for sending responses.
+ * 
+ * @returns {Promise<import("http").ServerResponse>} - Sends a response with a success message and status indicating whether 
+ * the post was liked or unliked. If an error occurs, sends an appropriate error message.
+ */
+export const likeDislikePost = async (request, reply) => {
+    try {
+
+        const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to create a post")
+        }
+
+
+        const postId = request.params.postId
+
+        if (!postId) {
+            return reply.badRequest("Post id is required")
+        }
+
+        if (!isValidObjectId(postId)) {
+            return reply.badRequest("Invalid post id")
+        }
+
+
+        const isAlreadyLiked = await Like.findOne({
+            postId,
+            authorId: userId
+        })
+
+
+        if (isAlreadyLiked) {
+
+            const isDeleted = await Like.findOneAndDelete({
+                postId,
+                authorId: userId
+            })
+
+            if (!isDeleted) {
+                return reply.badRequest("Failed to unlike post")
+            }
+
+
+
+            return reply.send({
+                isLiked: false,
+                message: "Post unliked successfully",
+                success: true
+            })
+
+        } else {
+
+            const like = await Like.create({
+                postId,
+                authorId: userId
+            })
+
+            if (!like) {
+                return reply.badRequest("Failed to like post")
+            }
+
+
+            
+            return reply.send({
+                isLiked: true,
+                message: "Post liked successfully",
+                success: true
+            })
+        }
+
+    } catch (error) {
+        return reply.createError(error)
+    }
+}
+
+
+
+/**
+ * Toggles the like status of a comment for the current user.
+ * 
+ * @function likeDislikeComment
+ * @param {FastifyRequest} request - The Fastify request object containing the user and comment IDs.
+ * @param {FastifyReply} reply - The Fastify reply object for sending responses.
+ * 
+ * @returns {Promise<import("http").ServerResponse>} response
+ */
+export const likeDislikeComment = async (request, reply) => {
+    try {
+
+        const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to create a post")
+        }
+
+
+        const commentId = request.params.commentId
+
+        if (!commentId) {
+            return reply.badRequest("Comment id is required")
+        }
+
+        if (!isValidObjectId(commentId)) {
+            return reply.badRequest("Invalid comment id")
+        }
+
+
+        const isAlreadyLiked = await Like.findOne({
+            commentId,
+            authorId: userId
+        })
+
+
+        if (isAlreadyLiked) {
+            
+            const isDeleted = await Like.findOneAndDelete({
+                commentId,
+                authorId: userId
+            })
+
+            if (!isDeleted) {
+                return reply.badRequest("Failed to unlike comment")
+            }
+
+
+
+            return reply.send({
+                isLiked: false,
+                message: "Comment unliked successfully",
+                success: true
+            })
+
+        } else {
+
+            const like = await Like.create({
+                commentId,
+                authorId: userId
+            })
+
+            if (!like) {
+                return reply.badRequest("Failed to like comment")
+            }
+
+
+
+            return reply.send({
+                isLiked: true,
+                message: "Comment liked successfully",
+                success: true
+            })
+        }
+
+    } catch (error) {
+        return reply.createError(error)
+    }
+}
