@@ -21,7 +21,7 @@ export const likeDislikePost = async (request, reply) => {
         const userId = request.user._id
 
         if (!userId) {
-            return reply.unauthorized("Unauthorized to create a post")
+            return reply.unauthorized("Unauthorized to like a post")
         }
 
 
@@ -103,7 +103,7 @@ export const likeDislikeComment = async (request, reply) => {
         const userId = request.user._id
 
         if (!userId) {
-            return reply.unauthorized("Unauthorized to create a post")
+            return reply.unauthorized("Unauthorized to like a comment")
         }
 
 
