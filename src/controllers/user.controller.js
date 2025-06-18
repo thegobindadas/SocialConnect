@@ -1,21 +1,13 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { User } from "../models/user.model.js";
+import { Post } from "../models/post.model.js";
+import { Follow } from "../models/follow.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
 import hashToken from "../utils/hashToken.js";
 
 
 
-/**
- * Generates access and refresh tokens using the provided user's data and the
- * environment variables for the access and refresh token secrets.
- *
- * @param {FastifyReply} reply - The Fastify reply object.
- * @param {User} user - The user document from the database.
- *
- * @returns {Promise<{ accessToken: string, refreshToken: string }>} - A promise
- * that resolves with an object containing the generated access and refresh tokens.
- */
 const generateAccessAndRefreshToken = async (reply, user) => {
     try {
         
@@ -104,14 +96,6 @@ export const registerUser = async (request, reply) => {
 */
 
 
-
-/**
- * Registers a new user
- * @param {FastifyRequest} request - The request
- * @param {FastifyReply} reply - The reply
- * @returns {Promise<void>}
- */
-
 export const registerUser = async (request, reply) => {
     try {
 
@@ -188,7 +172,7 @@ export const registerUser = async (request, reply) => {
         })
 
         if(!user) {
-            return reply.badRequest("Failed to create user")
+            return reply.badRequest("Failed to register user")
         }
 
 
@@ -202,17 +186,17 @@ export const registerUser = async (request, reply) => {
                 username: user.username,
                 profilePic: user.profilePic || null
             },
-            message: "User registered successfully" 
+            message: "User registered successfully",
+            success: true
         })
 
     } catch (err) {
         console.log(err)
-        return reply.internalServerError(err.message || "Error occurred while registering user")
+        return reply.internalServerError(err.message || "Failed to register user")
     }
 }
 
 
-// Login user
 export const loginUser = async (request, reply) => {
     try {
         
@@ -281,17 +265,17 @@ export const loginUser = async (request, reply) => {
                 },
                 accessToken,
                 refreshToken,
-                message: "User logged in successfully"
+                message: "User logged in successfully",
+                success: true
             })
 
     } catch (err) {
         console.error(err)
-        return reply.internalServerError(err.message || "Error occurred while logging in user ")
+        return reply.internalServerError(err.message || "Failed to login user")
     }
 }
 
 
-// Logout user
 export const logoutUser = async (request, reply) => {
     try {
         
@@ -326,7 +310,12 @@ export const logoutUser = async (request, reply) => {
                 secure: false,
                 httpOnly: true,
             })
-            .send({ message: "Logged out successfully" });
+            .send(
+                { 
+                    message: "Logged out successfully",
+                    success: true
+                }
+            );
 
     } catch (err) {
         return reply.createError(500, "Faild to logout user")
@@ -334,13 +323,15 @@ export const logoutUser = async (request, reply) => {
 }
 
 
-// Update password
 export const updateCurrentPassword = async (request, reply) => {
     try {
         
         const userId = request.user._id
-
         const { password, newPassword, confirmNewPassword } = request.body
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized request")
+        }
 
         if (!password || !newPassword || !confirmNewPassword) {
             return reply.badRequest("All fields are required")
@@ -364,6 +355,7 @@ export const updateCurrentPassword = async (request, reply) => {
             return reply.unauthorized("Invalid password")
         }
 
+
         user.password = newPassword
         await user.save()
 
@@ -381,28 +373,24 @@ export const updateCurrentPassword = async (request, reply) => {
                 profilePic: user.profilePic,
                 portfolioUrl: user.portfolioUrl || null,
             },
-            message: "Password updated successfully" 
+            message: "Password updated successfully",
+            success: true
         })
 
     } catch (err) {
-        return reply.createError(500, "Faild to update password")
+        return reply.createError(500, err.message || "Faild to update password")
     }
 }
 
 
-/**
- * Updates the profile picture of a user
- * 
- * @function updateUserProfilePic
- * @memberof module:controllers/user.controller
- * @param {FastifyRequest} request - The Fastify request object.
- * @param {FastifyReply} reply - The Fastify reply object.
- * @returns {Promise<FastifyReply>} - A promise that resolves with the updated user object and a message.
- */
 export const updateUserProfilePic = async (request, reply) => {
     try {
         
         const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized request")
+        }
 
 
         if (!request.isMultipart()) {
@@ -476,7 +464,7 @@ export const updateUserProfilePic = async (request, reply) => {
         }
 
         if (deletePhotoResult.result !== "ok") {
-            throw new Error(`Failed to delete photo from cloudinary: ${result.result}`);
+            throw new Error(`Failed to delete previous profile picture from cloudinary: ${deletePhotoResult.result}`);
         }
 
 
@@ -493,20 +481,24 @@ export const updateUserProfilePic = async (request, reply) => {
                 profilePic: updatedUser.profilePic,
                 portfolioUrl: updatedUser.portfolioUrl || null,
             },
-            message: "Profile picture updated successfully" 
+            message: "Profile picture updated successfully",
+            success: true
         })
 
     } catch (err) {
-        reply.createError(500, "Faild to update profile picture")
+        reply.createError(500, err.message || "Faild to update profile picture")
     }
 }
 
 
-// Returns the current user
 export const getCurrentUser = async (request, reply) => {
     try {
 
         const userId = request.user._id
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized request")
+        }
 
 
         const user = await User.findById(userId)
@@ -529,16 +521,16 @@ export const getCurrentUser = async (request, reply) => {
                 profilePic: user.profilePic,
                 portfolioUrl: user.portfolioUrl || null,
             },
-            message: "User found successfully"
+            message: "User found successfully",
+            success: true
         })
 
     } catch (err) {
-        return reply.createError(500, "Failed to get user.")
+        return reply.createError(500, err.message || "Failed to get user.")
     }
 }
 
 
-// Updates user information based on the provided request data. --> TODO
 export const updateUserProfile = async (request, reply) => {
     try {
         
@@ -600,16 +592,16 @@ export const updateUserProfile = async (request, reply) => {
                 profilePic: user.profilePic,
                 portfolioUrl: user.portfolioUrl || null,
             },
-            message: "User updated successfully"
+            message: "User updated successfully",
+            success: true
         })
 
     } catch (err) {
-        return reply.createError(500, "Failed to update user.")
+        return reply.createError(500, err.message || "Failed to update user.")
     }
 }
 
 
-// Refreshes an access token using the refresh token
 export const refreshAccessToken = async (request, reply) => {
     try {
         
@@ -666,23 +658,69 @@ export const refreshAccessToken = async (request, reply) => {
             .send({
                 accessToken,
                 refreshToken,
-                message: "Access token refreshed successfully"
+                message: "Access token refreshed successfully",
+                success: true
             })
 
     } catch (error) {
-        return reply.createError(500, "Failed to refresh access token")
+        return reply.createError(500, error.message || "Failed to refresh access token")
     }
 }
 
 
+// Todo: testing required
+export const getUserProfile = async (request, reply) => {
+    try {
+        
+        const { username } = request.params
+
+        if (!username) {
+            return reply.badRequest("Username is required")
+        }
 
 
+        const user = await User.findOne({ username })
+            .select("firstName lastName username tagline bio profilePic portfolioUrl")
+            .lean();
+
+        if (!user) {
+            return reply.notFound("User not found")
+        }
 
 
+        // Count total posts by the user
+        const [totalPosts, totalFollowers, totalFollowing] = await Promise.all([
+            Post.countDocuments({ authorId: user._id }),
+            Follow.countDocuments({ followingId: user._id }),
+            Follow.countDocuments({ followerId: user._id }),
+        ]);
 
 
+        // Determine if this is the currently logged-in user's profile
+        const loggedInUserId = request.user?._id || request.user?.id || null;
 
+        const isThisMyProfile = loggedInUserId && new mongoose.Types.ObjectId(loggedInUserId).equals(user._id);
 
+        
+
+        return reply.send({
+            data: {
+                user,
+                stats: {
+                    totalPosts,
+                    totalFollowers,
+                    totalFollowing,
+                },
+                isThisMyProfile,
+            },
+            message: "User profile fetched successfully",
+            success: true
+        });
+
+    } catch (err) {
+        return reply.createError(500, err.message || "Failed to get user profile")
+    }
+}
 
 
 
@@ -694,21 +732,7 @@ export const resendEmailVerification = async (request, reply) => {
 }
 
 
-
 export const forgotPasswordRequest = async (request, reply) => {
 }
 export const resetForgottenPassword = async (request, reply) => {
-}
-
-
-
-export const getUserProfile = async (request, reply) => {
-    try {
-        
-        // get First name, Last name, Username, Tagline, Bio, profilePic, Portfolio URL
-        // And get total Followers, Following
-
-    } catch (err) {
-        
-    }
 }

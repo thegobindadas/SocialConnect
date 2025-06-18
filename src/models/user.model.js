@@ -1,6 +1,7 @@
-import mongoose, { Schema, Types } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import { SECURITY } from "../constants.js";
+
 
 
 const userSchema  = new Schema ({
@@ -54,7 +55,9 @@ const userSchema  = new Schema ({
     portfolioUrl: String,
     password: {
         type: String,
-        required: [true, "Password is required"]
+        required: [true, "Password is required"],
+        minlength: [6, "Password must be at least 6 characters long"],
+        select: false
     },
     isEmailVerified: {
       type: Boolean,

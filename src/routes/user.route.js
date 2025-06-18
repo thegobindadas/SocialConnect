@@ -7,6 +7,7 @@ import {
     getCurrentUser,
     updateUserProfile,
     refreshAccessToken,
+    getUserProfile,
 } from "../controllers/user.controller.js";
 
 
@@ -29,4 +30,6 @@ export default async function (fastify, opts) {
     fastify.post("/update/profile", {preHandler: [fastify.authenticate]}, updateUserProfile);
 
     fastify.post("/refresh", {preHandler: [fastify.authenticate]}, refreshAccessToken);
+
+    fastify.get("/:username/profile", getUserProfile);
 }
