@@ -9,15 +9,15 @@ export const createComment = async (request, reply) => {
     try {
         
         const userId = request.user._id
-        const { postId } = request.query;
-        const { content } = req.body;
+        const { postId, parentCommentId } = request.query;
+        const { content } = request.body;
 
         if (!userId) {
-            return reply.unauthorized("Unauthorized to follow/unfollow a user")
+            return reply.unauthorized("Unauthorized to comment on a post")
         }
 
-        if (!postId || !content?.trim()) {
-            return reply.badRequest("All fields are required")
+        if (!content?.trim()) {
+            return reply.badRequest("Content are required")
         }
 
 
@@ -35,7 +35,7 @@ export const createComment = async (request, reply) => {
                 return reply.badRequest("Invalid parent comment id")
             }
 
-            const validParentComment = await Comment.findById(parentCommentId)
+            validParentComment = await Comment.findById(parentCommentId)
 
             if (!validParentComment || validParentComment.postId.toString() !== postId) {
                 return reply.badRequest("Invalid parent comment or mismatched postId")
@@ -71,6 +71,7 @@ export const createComment = async (request, reply) => {
 export const getCommentsByPostId = async (request, reply) => {
     try {
         
+        const userId = request.user._id
         const { postId } = request.params
         const page = parseInt(request.query.page) || 1;
         const limit = parseInt(request.query.limit) || 10;
@@ -81,16 +82,12 @@ export const getCommentsByPostId = async (request, reply) => {
             return reply.badRequest("Post id is required")
         }
 
-        if (!isValidObjectId(postId)) {
-            return reply.badRequest("Invalid post id")
-        }
-
         
         const comments = await Comment.find({ postId, parentCommentId: null })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .populate("authorId", "username avatar");
+            .populate("authorId", "firstName lastName username profilePic");
 
         const commentIds = comments.map(c => c._id);
 
@@ -118,6 +115,16 @@ export const getCommentsByPostId = async (request, reply) => {
             subMap[e._id.toString()] = e.count > 0;
         });
 
+
+        const likedByUser = userId
+            ? await Like.find({ commentId: { $in: commentIds }, authorId: userId }).select("commentId")
+            : [];
+
+        const likedMap = {};
+        likedByUser.forEach(like => {
+            likedMap[like.commentId.toString()] = true;
+        });
+
         
         const result = comments.map(c => ({
             _id: c._id,
@@ -125,7 +132,8 @@ export const getCommentsByPostId = async (request, reply) => {
             createdAt: c.createdAt,
             author: c.authorId,
             likeCount: likeMap[c._id.toString()] || 0,
-            isSubComment: subMap[c._id.toString()] || false
+            isSubComment: subMap[c._id.toString()] || false,
+            isLikedByMe: likedMap[c._id.toString()] || false 
         }));
 
         const total = await Comment.countDocuments({ postId, parentCommentId: null });
@@ -163,7 +171,7 @@ export const getRepliesByCommentId = async (request, reply) => {
   
         const replies = await Comment.find({ parentCommentId: commentId })
             .sort({ createdAt: 1 })
-            .populate("authorId", "username avatar");
+            .populate("authorId", "firstName lastName username profilePic");
   
         const replyIds = replies.map(r => r._id);
   
@@ -206,7 +214,8 @@ export const updateComment = async (request, reply) => {
     try {
         
         const userId = request.user._id
-        const { commentId, content } = request.body
+        const { commentId } = request.params
+        const { content } = request.body
 
         if (!userId) {
             return reply.unauthorized("Unauthorized to update a comment")
@@ -253,7 +262,7 @@ export const deleteComment = async (request, reply) => {
     try {
      
         const userId = request.user._id
-        const { commentId } = request.body
+        const { commentId } = request.params
 
         if (!userId) {
             return reply.unauthorized("Unauthorized to delete a comment")
@@ -261,10 +270,6 @@ export const deleteComment = async (request, reply) => {
 
         if (!commentId) {
             return reply.badRequest("Comment id is required")
-        }
-
-        if (!isValidObjectId(commentId)) {
-            return reply.badRequest("Invalid comment id")
         }
 
 
@@ -279,7 +284,18 @@ export const deleteComment = async (request, reply) => {
         }
 
 
-        await comment.deleteOne()
+        if (comment.parentCommentId === null) {
+
+            await comment.deleteOne()
+
+            return reply.send({
+                message: "Comment deleted with replies successfully",
+                success: true
+            })
+        }
+        
+
+        await Comment.deleteOne({ _id: commentId });
 
 
 
@@ -289,6 +305,6 @@ export const deleteComment = async (request, reply) => {
         })
 
     } catch (error) {
-        reply.createError(500, "Failed to delete a comment")
+        return reply.createError(500, "Failed to delete a comment")
     }
 }

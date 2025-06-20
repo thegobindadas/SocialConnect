@@ -28,5 +28,18 @@ const commentSchema = new Schema({
 }, { timestamps: true })
 
 
+commentSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
+    
+    const commentId = this._id;
+    const replies = await this.model("Comment").find({ parentCommentId: commentId });
+
+    for (const reply of replies) {
+        await reply.deleteOne(); // recursively deletes all nested replies
+    }
+
+    next();
+});
+
+
 
 export const Comment = mongoose.model("Comment", commentSchema)

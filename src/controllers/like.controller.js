@@ -75,8 +75,6 @@ export const likeDislikePost = async (request, reply) => {
 }
 
 
-
-// TODO: testing required
 export const likeDislikeComment = async (request, reply) => {
     try {
 
