@@ -1,12 +1,12 @@
 import { isValidObjectId } from "mongoose";
-import { User } from "../models/user.model";
-import { Follow } from "../models/follow.model";
+import { User } from "../models/user.model.js";
+import { Follow } from "../models/follow.model.js";
 
 
 
 
 
-const followUnFollowUser = async (request, reply) => {
+export const followUnFollowUser = async (request, reply) => {
     try {
 
         const userId = request.user._id
@@ -88,7 +88,7 @@ const followUnFollowUser = async (request, reply) => {
 }
 
 
-const getUserFollowers = async (request, reply) => {
+export const getUserFollowers = async (request, reply) => {
     try {
         
         const { username } = request.params
@@ -130,7 +130,7 @@ const getUserFollowers = async (request, reply) => {
 }
 
 
-const getUserFollowings = async (request, reply) => {
+export const getUserFollowings = async (request, reply) => {
     try {
 
         const { username } = request.params;

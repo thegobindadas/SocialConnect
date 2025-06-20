@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 
+
 const followSchema = new Schema({
     // The one who follows
     followerId: {
@@ -18,6 +19,7 @@ const followSchema = new Schema({
 
 
 followSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
+
 followSchema.pre("save", function (next) {
     if (this.followerId.equals(this.followingId)) {
         return next(new Error("Users cannot follow themselves."));

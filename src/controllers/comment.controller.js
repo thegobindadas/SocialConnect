@@ -1,7 +1,7 @@
 import { isValidObjectId } from "mongoose";
-import { Post } from "../models/post.model";
-import { Comment } from "../models/comment.model";
-import { Like } from "../models/like.model";
+import { Post } from "../models/post.model.js";
+import { Comment } from "../models/comment.model.js";
+import { Like } from "../models/like.model.js";
 
 
 
@@ -9,18 +9,15 @@ export const createComment = async (request, reply) => {
     try {
         
         const userId = request.user._id
-        const { postId, parentCommentId, content } = req.body;
+        const { postId } = request.query;
+        const { content } = req.body;
 
         if (!userId) {
             return reply.unauthorized("Unauthorized to follow/unfollow a user")
         }
 
-        if (!postId || !content) {
+        if (!postId || !content?.trim()) {
             return reply.badRequest("All fields are required")
-        }
-
-        if (!isValidObjectId(postId)) {
-            return reply.badRequest("Invalid post id")
         }
 
 
@@ -31,15 +28,16 @@ export const createComment = async (request, reply) => {
         }
 
 
+        let validParentComment = null;
         if (parentCommentId) {
 
             if (!isValidObjectId(parentCommentId)) {
                 return reply.badRequest("Invalid parent comment id")
             }
 
-            const parentComment = await Comment.findById(parentCommentId)
+            const validParentComment = await Comment.findById(parentCommentId)
 
-            if (!parentComment || parentComment.postId.toString() !== postId) {
+            if (!validParentComment || validParentComment.postId.toString() !== postId) {
                 return reply.badRequest("Invalid parent comment or mismatched postId")
             }
         }
@@ -47,7 +45,7 @@ export const createComment = async (request, reply) => {
 
         const comment = await Comment.create({
             postId,
-            parentCommentId: parentCommentId || null,
+            parentCommentId: validParentComment ? parentCommentId : null,
             content,
             authorId: userId
         })
@@ -65,7 +63,7 @@ export const createComment = async (request, reply) => {
         })
 
     } catch (error) {
-        reply.createError(500, "Failed to create a comment")
+        return reply.createError(500, "Failed to create a comment")
     }
 }
 

@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 
+
 const bookmarkSchema = new Schema({
     postId: {
         type: Schema.Types.ObjectId,

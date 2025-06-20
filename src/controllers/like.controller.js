@@ -1,20 +1,8 @@
-import mongoose, { isValidObjectId } from "mongoose";
-import { Like } from "../models/like.model";
+import { isValidObjectId } from "mongoose";
+import { Like } from "../models/like.model.js";
 
 
 
-
-
-/**
- * Toggles the like status of a post for the current user.
- * 
- * @function likeDislikePost
- * @param {FastifyRequest} request - The Fastify request object containing the user and post IDs.
- * @param {FastifyReply} reply - The Fastify reply object for sending responses.
- * 
- * @returns {Promise<import("http").ServerResponse>} - Sends a response with a success message and status indicating whether 
- * the post was liked or unliked. If an error occurs, sends an appropriate error message.
- */
 export const likeDislikePost = async (request, reply) => {
     try {
 
@@ -88,15 +76,7 @@ export const likeDislikePost = async (request, reply) => {
 
 
 
-/**
- * Toggles the like status of a comment for the current user.
- * 
- * @function likeDislikeComment
- * @param {FastifyRequest} request - The Fastify request object containing the user and comment IDs.
- * @param {FastifyReply} reply - The Fastify reply object for sending responses.
- * 
- * @returns {Promise<import("http").ServerResponse>} response
- */
+// TODO: testing required
 export const likeDislikeComment = async (request, reply) => {
     try {
 

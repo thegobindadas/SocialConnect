@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 
+
 const commentSchema = new Schema({
     postId: {
         type: Schema.Types.ObjectId,
@@ -25,9 +26,6 @@ const commentSchema = new Schema({
         required: true
     }
 }, { timestamps: true })
-
-
-commentSchema.index({ postId: 1 });
 
 
 

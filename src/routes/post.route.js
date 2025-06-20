@@ -2,6 +2,7 @@ import {
     createANewPost,
     togglePostPublishStatus,
     updatePost,
+    getPostById,
 } from "../controllers/post.controller.js";
 
 
@@ -20,6 +21,8 @@ export default async function (fastify, opts) {
         fastify.patch("/:postId/publish-toggle", togglePostPublishStatus);
 
         fastify.patch("/:postId/update", updatePost);
+
+        fastify.get("/:postId", getPostById);
 
     })
 }

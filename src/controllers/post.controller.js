@@ -5,14 +5,6 @@ import { CLOUD_FOLDERS } from "../constants.js";
 
 
 
-
-
-/**
- * Creates a new post
- * @param {FastifyRequest} request - The Fastify request instance
- * @param {FastifyReply} reply - The Fastify reply instance
- * @returns {Promise<FastifyReply>} - The response
- */
 export const createANewPost = async (request, reply) => {
     try {
 
@@ -48,6 +40,7 @@ export const createANewPost = async (request, reply) => {
                 
                 mediaUrls.push({
                     url: uploadResult.url,
+                    publicId: uploadResult.public_id,
                     type: uploadResult.resource_type,
                 });
 
@@ -80,6 +73,7 @@ export const createANewPost = async (request, reply) => {
         return reply.send({
             post: newPost,
             message: "Post created successfully",
+            success: true
         })
 
     } catch (error) {
@@ -88,16 +82,6 @@ export const createANewPost = async (request, reply) => {
 }
 
 
-/**
- * Toggles the publish status of a post
- *
- * @function togglePostPublishStatus
- * @param {FastifyRequest} request - The Fastify request object
- * @param {FastifyReply} reply - The Fastify reply object
- *
- * @returns {Promise<{ post: Post, message: string }>} - A promise that resolves
- * with an object containing the toggled post and a success message.
- */
 export const togglePostPublishStatus = async (request, reply) => {
     try {
 
@@ -138,6 +122,7 @@ export const togglePostPublishStatus = async (request, reply) => {
         return reply.send({
             post,
             message: "Post updated published status successfully",
+            success: true
         })
 
     } catch (error) {
@@ -192,10 +177,172 @@ export const updatePost = async (request, reply) => {
         return reply.send({
             post,
             message: "Post updated successfully",
+            success: true
         });
         
     } catch (error) {
         return reply.createError(500, "Failed to update a post")
+    }
+}
+
+
+export const getPostById = async (request, reply) => {
+    try {
+        
+        const postId = request.params.postId
+
+        if (!postId) {
+            return reply.badRequest("Post id is required")
+        }
+
+        const loggedInUserId = request.user?._id || request.user?.id || null
+
+
+        const pipeline = [
+            {
+                $match: { 
+                    _id: new mongoose.Types.ObjectId(postId) 
+                } 
+            },
+
+            // Lookup author
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "authorId",
+                    foreignField: "_id",
+                    as: "author"
+                }
+            },
+            { $unwind: "$author" },
+
+            // Lookup total likes
+            {
+            $lookup: {
+                    from: "likes",
+                    let: { postId: "$_id" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$postId", "$$postId"] } } }
+                    ],
+                    as: "likes"
+                }
+            },
+
+            // Lookup total comments
+            {
+            $lookup: {
+                    from: "comments",
+                    let: { postId: "$_id" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$postId", "$$postId"] } } }
+                    ],
+                    as: "comments"
+                }
+            }
+        ];
+
+
+        // Conditionally add isLikedByMe if loggedInUserId exists
+        if (loggedInUserId) {
+            pipeline.push(
+                {
+                    $lookup: {
+                        from: "likes",
+                        let: { postId: "$_id" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ["$postId", "$$postId"] },
+                                            { $eq: ["$authorId", new mongoose.Types.ObjectId(loggedInUserId)] }
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        as: "isLikedByMe"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "bookmarks",
+                        let: { postId: "$_id" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ["$postId", "$$postId"] },
+                                            { $eq: ["$authorId", new mongoose.Types.ObjectId(loggedInUserId)] }
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        as: "isBookmarkedByMe"
+                    }
+                }
+            );
+        }
+
+
+        // Final projection
+        pipeline.push({
+            $project: {
+                _id: 1,
+                content: 1,
+                tags: 1,
+                link: 1,
+                mediaUrls: 1,
+                isPublished: 1,
+                createdAt: 1,
+                updatedAt: 1,
+
+                author: {
+                    _id: "$author._id",
+                    firstName: "$author.firstName",
+                    lastName: "$author.lastName",
+                    username: "$author.username",
+                    profilePic: "$author.profilePic"
+                },
+
+                totalLikes: { $size: "$likes" },
+                totalComments: { $size: "$comments" },
+                isLikedByMe: loggedInUserId ? { $gt: [{ $size: "$isLikedByMe" }, 0] } : false,
+                isBookmarkedByMe: loggedInUserId ? { $gt: [{ $size: "$isBookmarkedByMe" }, 0] } : false
+            }
+        });
+
+
+        const postDetails = await Post.aggregate(pipeline);
+        const post = postDetails?.[0] || null;
+
+        if (!post) {
+            return reply.notFound("Post not found")
+        }
+
+
+
+        return reply.send({
+            post,
+            message: "Post fetched successfully",
+            success: true
+        });
+
+    } catch (error) {
+        return reply.createError(500, "Failed to get a post")
+    }
+}
+
+
+
+// TODO: testing required
+export const getAllPosts = async (request, reply) => {
+    try {
+        
+    } catch (error) {
+        return reply.createError(500, "Failed to get all posts")
     }
 }
 
@@ -207,9 +354,6 @@ export const updatePost = async (request, reply) => {
 
 
 
-
-export const getPostById = async (request, reply) => {}
 export const deletePost = async (request, reply) => {}
-export const getAllPosts = async (request, reply) => {}
 export const updatePostMedia = async (request, reply) => {}
 export const deletePostMedia = async (request, reply) => {}
