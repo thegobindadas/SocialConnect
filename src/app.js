@@ -8,6 +8,7 @@ import fastifyCookie from "@fastify/cookie";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import cloudinary from "fastify-cloudinary";
+import fastifyMailer from "fastify-mailer";
 
 import mongodbPlugin from "./plugin/mongodb.js";
 import authPlugin from "./plugin/auth.js"
@@ -41,6 +42,7 @@ await fastify.register(fastifyEnv, {
     schema: {
         type: "object",
         required: [ 
+            "APP_NAME",
             "PORT", 
             "MONGODB_URI", 
             // "JWT_SECRET",
@@ -49,8 +51,14 @@ await fastify.register(fastifyEnv, {
             "CLOUDINARY_CLOUD_NAME", 
             "CLOUDINARY_API_KEY", 
             "CLOUDINARY_API_SECRET",
+            "SMTP_MAIL_HOST",
+            "SMTP_MAIL_PORT",
+            "SMTP_MAIL_USERNAME",
+            "SMTP_MAIL_PASSWORD",
+            "SMTP_SENDER_EMAIL",
         ],
         properties: {
+            APP_NAME: { type: "string" },
             PORT: {
                 type: "string",
                 default: 3000
@@ -62,6 +70,11 @@ await fastify.register(fastifyEnv, {
             CLOUDINARY_CLOUD_NAME: { type: "string" },
             CLOUDINARY_API_KEY: { type: "string" },
             CLOUDINARY_API_SECRET: { type: "string" },
+            SMTP_MAIL_HOST: { type: "string" },
+            SMTP_MAIL_PORT: { type: "number" },
+            SMTP_MAIL_USERNAME: { type: "string" },
+            SMTP_MAIL_PASSWORD: { type: "string" },
+            SMTP_SENDER_EMAIL: { type: "string" },
         }
     },
     dotenv: true,
@@ -92,11 +105,26 @@ await fastify.register(fastifyStatic, {
   prefix: "/public/",
   //constraints: { host: "example.com" }
 })
+
 await fastify.register(cloudinary, { url: `cloudinary://${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}@${process.env.CLOUDINARY_CLOUD_NAME}` });
+
+fastify.register(fastifyMailer, {
+  defaults: { from: `Gobinda Das <${process.env.SMTP_SENDER_EMAIL}>`},
+  transport: {
+    host: process.env.SMTP_MAIL_HOST,
+    port: process.env.SMTP_MAIL_PORT,
+    secure: true, // use TLS
+    auth: {
+      user: process.env.SMTP_MAIL_USERNAME,
+      pass: process.env.SMTP_MAIL_PASSWORD
+    }
+  }
+})
 
 
 fastify.register(mongodbPlugin)
 fastify.register(authPlugin)
+
 
 
 // Use Routes

@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { SECURITY } from "../constants.js";
 
 
@@ -63,10 +64,10 @@ const userSchema  = new Schema ({
       default: false,
     },
     refreshToken: String,
-    forgotPasswordToken: String,
-    forgotPasswordExpiry: Date,
     emailVerificationToken: String,
     emailVerificationExpiry: Date,
+    forgotPasswordToken: String,
+    forgotPasswordExpiry: Date,
 }, { timestamps: true })
 
 
@@ -84,6 +85,24 @@ userSchema.pre("save", async function(next) {
 userSchema.methods.isPasswordCorrect = async function(password) {
     return await bcrypt.compare(password, this.password)
 }
+
+
+userSchema.methods.generateTemporaryToken = function () {
+  // This token should be client facing
+  // for example: for email verification unHashedToken should go into the user's mail
+  const unHashedToken = crypto.randomBytes(20).toString("hex");
+
+  // This should stay in the DB to compare at the time of verification
+  const hashedToken = crypto.createHash("sha256").update(unHashedToken).digest("hex");
+
+  // This is the expiry time for the token (20 minutes)
+  const expiryMinutes = parseInt(process.env.TEMPORARY_TOKEN_EXPIRY || "20", 10);
+  const tokenExpiry = Date.now() + expiryMinutes * 60 * 1000;
+
+
+
+  return { unHashedToken, hashedToken, tokenExpiry };
+};
 
 
 

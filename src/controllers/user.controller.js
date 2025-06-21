@@ -1,10 +1,15 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import { Post } from "../models/post.model.js";
 import { Follow } from "../models/follow.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
+import crypto from "crypto";
 import hashToken from "../utils/hashToken.js";
+import { 
+    sendEmail,
+    emailVerificationMailgenContent,
+} from "../utils/mail.js";
 
 
 
@@ -169,6 +174,7 @@ export const registerUser = async (request, reply) => {
             username: fields.username,
             profilePic: profilePic || null,
             password: fields.password,
+            isEmailVerified: false
         })
 
         if(!user) {
@@ -728,9 +734,98 @@ export const getUserProfile = async (request, reply) => {
 
 
 export const verifyEmail = async (request, reply) => {
+    try {
+
+        const { verificationToken } = request.params;
+
+        if (!verificationToken) {
+            return reply.badRequest("Verification token is required")
+        }
+            
+        
+        let hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+
+  
+        const user = await User.findOne({
+            emailVerificationToken: hashedToken,
+            emailVerificationExpiry: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return reply.notFound("Token is invalid or expired")
+        }
+
+
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpiry = undefined;
+
+        user.isEmailVerified = true;
+        await user.save({ validateBeforeSave: false });
+
+
+
+        return reply.send({
+            message: "Email verified successfully",
+            success: true
+        });
+
+    } catch (error) {
+        return reply.createError(500, error.message || "Failed to verify email")
+    }
 }
+
 export const resendEmailVerification = async (request, reply) => {
+    try {
+
+        const userId = request.user._id
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return reply.notFound("User not found")
+        }
+
+        if (user.isEmailVerified) {
+            return reply.badRequest("Email is already verified")
+        }
+
+
+        const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken(); // generate email verification creds
+
+        user.emailVerificationToken = hashedToken;
+        user.emailVerificationExpiry = tokenExpiry;
+
+        await user.save({ validateBeforeSave: false });
+
+
+        await sendEmail({
+            fastify: request.server,
+            email: user?.email,
+            subject: "Please verify your email",
+            mailgenContent: emailVerificationMailgenContent(
+                user.username,
+                `${request.protocol}://${request.get(
+                    "host"
+                )}/api/v1/users/verify-email/${unHashedToken}`
+            ),
+        });
+
+
+
+        return reply.send({
+            message: "Email verification link sent successfully",
+            success: true
+        });
+
+    } catch (error) {
+        return reply.createError(500, error.message || "Failed to resend email verification");
+    }
 }
+
+
+
+
+
 
 
 export const forgotPasswordRequest = async (request, reply) => {

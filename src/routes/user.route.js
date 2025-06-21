@@ -1,6 +1,8 @@
 import { 
     registerUser,
     loginUser,
+    resendEmailVerification,
+    verifyEmail,
     logoutUser,
     updateCurrentPassword,
     updateUserProfilePic,
@@ -18,6 +20,10 @@ export default async function (fastify, opts) {
     fastify.post("/register", registerUser);
 
     fastify.post("/login", loginUser);
+
+    fastify.post("/resend-email-verification", {preHandler: [fastify.authenticate]}, resendEmailVerification);
+
+    fastify.post("/verify-email/:verificationToken", verifyEmail);
 
     fastify.post("/logout", {preHandler: [fastify.authenticate]}, logoutUser);
 
