@@ -1,100 +1,155 @@
-import Mailgen from "mailgen";
+import nodemailer from "nodemailer";
 
 
 
-export const sendEmail = async (options) => {
-
-    const { mailer } = options.fastify;
-
-    const mailGenerator = new Mailgen({
-        theme: "default",
-        product: {
-            name: "Gobinda Das",
-            link: "https://localhost:4000",
-        },
-    });
-
-
-    const emailTextual = mailGenerator.generatePlaintext(options.mailgenContent);
-
-    const emailHtml = mailGenerator.generate(options.mailgenContent);
-
-
-    const mail = {
-        from: process.env.SMTP_SENDER_EMAIL, // We can name this anything. The mail will go to your Mailtrap inbox
-        to: options.email, // receiver's mail
-        subject: options.subject, // mail subject
-        text: emailTextual, // mailgen content textual variant
-        html: emailHtml, // mailgen content html variant
-    };
-
-    try {
-        await mailer.sendMail(mail);
-    } catch (error) {
-        console.error(error);
-        throw new Error(error || "Error sending email");
+const transporter = nodemailer.createTransport({  
+    host: process.env.SMTP_MAIL_HOST,
+    port: Number(process.env.SMTP_MAIL_PORT),
+    auth: {
+        user: process.env.SMTP_MAIL_USERNAME,
+        pass: process.env.SMTP_MAIL_PASSWORD
     }
-};
+});
 
 
 
+export const sendResetPasswordEmail = async (username, email, resetToken) => {
+    try {
 
-export const emailVerificationMailgenContent = (username, verificationUrl) => {
-    return {
-        body: {
-            name: username,
-            intro: [
-                `Welcome to ${process.env.APP_NAME || "SocialConnect"}! 🎉`,
-                "We're thrilled to have you join our community of creators, thinkers, and innovators. Your journey to connect with the world starts here."
-            ],
-            action: {
-                instructions: [
-                "To get started and secure your account, please verify your email address by clicking the button below:",
-                "This verification helps us ensure the security of your account and enables all platform features."
-                ],
-                button: {
-                color: "#1DA1F2", // Twitter-like blue
-                text: "Verify Email Address",
-                link: verificationUrl,
-                },
-            },
-            table: {
-                data: [
-                    {
-                        item: "Account Security",
-                        description: "Email verification protects your account from unauthorized access"
-                    },
-                    {
-                        item: "Full Access",
-                        description: "Unlock all features including posting, following, and notifications"
-                    },
-                    {
-                        item: "Recovery Options",
-                        description: "Enable account recovery and password reset capabilities"
-                    }
-                ],
-                columns: {
-                    // Optionally, customize the column widths
-                    customWidth: {
-                        item: "25%",
-                        description: "75%"
-                    }
-                }
-            },
-            action2: {
-                instructions: "If the button above doesn't work, copy and paste this link into your browser:",
-                button: {
-                    color: "#6C757D", // Secondary gray color
-                    text: verificationUrl,
-                    link: verificationUrl,
-                },
-            },
-            outro: [
-                "This verification link will expire in 24 hours for security reasons.",
-                "If you didn't create this account, please ignore this email or contact our support team.",
-                "Welcome aboard! We can't wait to see what you'll share with the world. 🚀"
-            ],
-            signature: "The Team"
+        const verificationLink = `${process.env.RESET_PASSWORD_REDIRECT_URL}?token=${resetToken}`;
+       
+
+        const mailOptions = {
+            from: String(process.env.SMTP_SENDER_EMAIL),
+            to: email,
+            subject: "Reset Your Password",
+            html: `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>${"Reset Your Password"}</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                            background-color: #f5f5f5;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .container {
+                            max-width: 600px;
+                            margin: 20px auto;
+                            padding: 20px;
+                            background-color: #ffffff;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        }
+                        .header {
+                            text-align: center;
+                            padding: 20px 0;
+                            border-bottom: 1px solid #eeeeee;
+                        }
+                        .logo {
+                            max-width: 150px;
+                            height: auto;
+                        }
+                        .content {
+                            padding: 20px;
+                        }
+                        .button {
+                            display: inline-block;
+                            padding: 12px 24px;
+                            background-color: #4f46e5;
+                            color: #ffffff !important;
+                            text-decoration: none;
+                            border-radius: 4px;
+                            font-weight: 600;
+                            margin: 20px 0;
+                        }
+                        .button:hover {
+                            background-color: #4338ca;
+                        }
+                        .footer {
+                            text-align: center;
+                            padding: 20px;
+                            font-size: 12px;
+                            color: #666666;
+                            border-top: 1px solid #eeeeee;
+                        }
+                        h1 {
+                            color: #111827;
+                            margin-top: 0;
+                        }
+                        p {
+                            margin-bottom: 16px;
+                        }
+                        .code {
+                            font-family: monospace;
+                            font-size: 24px;
+                            letter-spacing: 4px;
+                            padding: 10px 15px;
+                            background: #f3f4f6;
+                            border-radius: 4px;
+                            display: inline-block;
+                            margin: 10px 0;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <!-- Replace with your logo -->
+                            <img src="https://yourwebsite.com/logo.png" alt="Company Logo" class="logo">
+                        </div>
+                        
+                        <div class="content">
+                            <h1>${"Reset Your Password"}</h1>
+                            <p>Hello ${username},</p>
+                            <p>
+                                ${"We received a request to reset your password. If you made this request, please click the button below to set a new password:"}
+                            </p>
+                            
+                            <div style="text-align: center;">
+                                <a href="${verificationLink}" class="button">
+                                    ${"Reset Password"}
+                                </a>
+                            </div>
+                            
+                            <p>Or copy and paste this link into your browser:</p>
+                            <p><a href="${verificationLink}">Verification Link</a></p>
+                            
+                            
+                            <p>
+                                ${"If you didn’t request a password reset, you can safely ignore this email."}
+                            </p>
+                            
+                            <p>Best regards,<br>The gobindaDas Team</p>
+                        </div>
+                        
+                        <div class="footer">
+                            <p>&copy; 2025 gobindaDas. All rights reserved.</p>
+                            <p>
+                                <a href="{{websiteUrl}}">Our Website</a> | 
+                                <a href="{{privacyPolicyUrl}}">Privacy Policy</a> | 
+                                <a href="{{contactUrl}}">Contact Us</a>
+                            </p>
+                        </div>
+                    </div>
+                </body>
+            </html>`
         }
-    };
-};
+
+
+        const mailResponse = await transporter.sendMail(mailOptions);
+
+
+
+        return mailResponse;
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}

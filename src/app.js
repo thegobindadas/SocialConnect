@@ -38,66 +38,68 @@ const __dirname = path.dirname(__filename);
 
 
 await fastify.register(fastifyEnv, {
-    confKey: "config",
-    schema: {
-        type: "object",
-        required: [ 
-            "APP_NAME",
-            "PORT", 
-            "MONGODB_URI", 
-            // "JWT_SECRET",
-            "ACCESS_TOKEN_SECRET",
-            "REFRESH_TOKEN_SECRET",
-            "CLOUDINARY_CLOUD_NAME", 
-            "CLOUDINARY_API_KEY", 
-            "CLOUDINARY_API_SECRET",
-            "SMTP_MAIL_HOST",
-            "SMTP_MAIL_PORT",
-            "SMTP_MAIL_USERNAME",
-            "SMTP_MAIL_PASSWORD",
-            "SMTP_SENDER_EMAIL",
-        ],
-        properties: {
-            APP_NAME: { type: "string" },
-            PORT: {
-                type: "string",
-                default: 3000
-            },
-            MONGODB_URI: { type: "string" },
-            // JWT_SECRET: { type: "string" },
-            ACCESS_TOKEN_SECRET: { type: "string" },
-            REFRESH_TOKEN_SECRET: { type: "string" },
-            CLOUDINARY_CLOUD_NAME: { type: "string" },
-            CLOUDINARY_API_KEY: { type: "string" },
-            CLOUDINARY_API_SECRET: { type: "string" },
-            SMTP_MAIL_HOST: { type: "string" },
-            SMTP_MAIL_PORT: { type: "number" },
-            SMTP_MAIL_USERNAME: { type: "string" },
-            SMTP_MAIL_PASSWORD: { type: "string" },
-            SMTP_SENDER_EMAIL: { type: "string" },
-        }
-    },
-    dotenv: true,
-    data: process.env,
-}).after((err) => {
-    if (err) {
-        console.error(`ENV load failed: ${err.message}`)
-        process.exit(1)
+  confKey: "config",
+  schema: {
+    type: "object",
+    required: [ 
+      "APP_NAME",
+      "PORT", 
+      "MONGODB_URI", 
+      // "JWT_SECRET",
+      "ACCESS_TOKEN_SECRET",
+      "REFRESH_TOKEN_SECRET",
+      "CLOUDINARY_CLOUD_NAME", 
+      "CLOUDINARY_API_KEY", 
+      "CLOUDINARY_API_SECRET",
+      "RESET_PASSWORD_REDIRECT_URL",
+      "SMTP_MAIL_HOST",
+      "SMTP_MAIL_PORT",
+      "SMTP_MAIL_USERNAME",
+      "SMTP_MAIL_PASSWORD",
+      "SMTP_SENDER_EMAIL",
+    ],
+    properties: {
+      APP_NAME: { type: "string" },
+      PORT: {
+        type: "string",
+        default: 3000
+      },
+      MONGODB_URI: { type: "string" },
+      // JWT_SECRET: { type: "string" },
+      ACCESS_TOKEN_SECRET: { type: "string" },
+      REFRESH_TOKEN_SECRET: { type: "string" },
+      CLOUDINARY_CLOUD_NAME: { type: "string" },
+      CLOUDINARY_API_KEY: { type: "string" },
+      CLOUDINARY_API_SECRET: { type: "string" },
+      RESET_PASSWORD_REDIRECT_URL: { type: "string" },
+      SMTP_MAIL_HOST: { type: "string" },
+      SMTP_MAIL_PORT: { type: "number" },
+      SMTP_MAIL_USERNAME: { type: "string" },
+      SMTP_MAIL_PASSWORD: { type: "string" },
+      SMTP_SENDER_EMAIL: { type: "string" },
     }
+  },
+  dotenv: true,
+  data: process.env,
+}).after((err) => {
+  if (err) {
+    console.error(`ENV load failed: ${err.message}`)
+    process.exit(1)
+  }
 })
 
 await fastify.register(cors, { 
-    origin: "*" 
+  origin: "*" 
 })
 await fastify.register(fastifySensible)
 await fastify.register(fastifyCookie, {
   secret: fastify.config.JWT_SECRET,
 })
 await fastify.register(fastifyMultipart, {
-    limits: {
-        fileSize: 10 * 1024 * 1024,
-        files: 5,
-    }
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+    files: 5,
+  }
 })
 
 await fastify.register(fastifyStatic, {
