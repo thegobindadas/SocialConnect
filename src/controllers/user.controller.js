@@ -4,12 +4,8 @@ import { Post } from "../models/post.model.js";
 import { Follow } from "../models/follow.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
-import crypto from "crypto";
 import hashToken from "../utils/hashToken.js";
-import { 
-    sendEmail,
-    emailVerificationMailgenContent,
-} from "../utils/mail.js";
+import { sendResetPasswordEmail } from "../utils/mail.js";
 
 
 
@@ -389,6 +385,87 @@ export const updateCurrentPassword = async (request, reply) => {
 }
 
 
+export const forgotPasswordRequest = async (request, reply) => {
+    try {
+        
+        const { email } = request.body;
+
+        const user = await User.findOne({ email: email.toLowerCase() })
+
+        if (!user) {
+            throw new AppError("User not found, Please provide a valid email address.", 404);
+        }
+
+
+        const { unHashedToken, hashedToken, tokenExpiry } = await user.generateTemporaryToken()
+
+        user.forgotPasswordToken = hashedToken
+        user.forgotPasswordExpiry = tokenExpiry
+
+        await user.save({ validateBeforeSave: false })
+
+
+        await sendResetPasswordEmail(user.username, user.email.toString(), unHashedToken)
+
+
+
+        return reply.send({
+            message: "Password reset request sent successfully",
+            success: true
+        })
+        
+    } catch (error) {
+        return reply.createError(500, error.message || "Failed to request password reset")
+    }
+}
+
+
+export const resetForgottenPassword = async (request, reply) => {
+    try {
+        
+        const { resetToken } = request.params;
+        const { newPassword, confirmPassword } = request.body;
+
+        if (!resetToken || !newPassword || !confirmPassword) {
+            return reply.badRequest("All fields are required")
+        }
+            
+        if (newPassword !== confirmPassword) {
+            return reply.badRequest("Passwords do not match")
+        }
+            
+    
+        const hashedToken = hashToken(resetToken)
+
+        const user = await User.findOne({ 
+            forgotPasswordToken: hashedToken,
+            forgotPasswordExpiry: { $gt: Date.now() },
+        })
+
+        if (!user) {
+            return reply.badRequest("Invalid or expired reset token")
+        }
+
+
+        user.password = newPassword
+        user.forgotPasswordToken = undefined
+        user.forgotPasswordExpiry = undefined
+
+        await user.save()
+
+
+
+        return reply.send({
+            message: "Password reset successfully",
+            success: true
+        })
+
+    } catch (error) {
+        return reply.createError(500, error.message || "Failed to reset forgotten password")
+    }
+}
+
+
 export const updateUserProfilePic = async (request, reply) => {
     try {
         
@@ -674,7 +751,6 @@ export const refreshAccessToken = async (request, reply) => {
 }
 
 
-
 // Todo: testing required
 export const getUserProfile = async (request, reply) => {
     try {
@@ -727,108 +803,4 @@ export const getUserProfile = async (request, reply) => {
     } catch (err) {
         return reply.createError(500, err.message || "Failed to get user profile")
     }
-}
-
-
-
-
-
-export const verifyEmail = async (request, reply) => {
-    try {
-
-        const { verificationToken } = request.params;
-
-        if (!verificationToken) {
-            return reply.badRequest("Verification token is required")
-        }
-            
-        
-        let hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
-
-  
-        const user = await User.findOne({
-            emailVerificationToken: hashedToken,
-            emailVerificationExpiry: { $gt: Date.now() },
-        });
-
-        if (!user) {
-            return reply.notFound("Token is invalid or expired")
-        }
-
-
-        user.emailVerificationToken = undefined;
-        user.emailVerificationExpiry = undefined;
-
-        user.isEmailVerified = true;
-        await user.save({ validateBeforeSave: false });
-
-
-
-        return reply.send({
-            message: "Email verified successfully",
-            success: true
-        });
-
-    } catch (error) {
-        return reply.createError(500, error.message || "Failed to verify email")
-    }
-}
-
-export const resendEmailVerification = async (request, reply) => {
-    try {
-
-        const userId = request.user._id
-
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return reply.notFound("User not found")
-        }
-
-        if (user.isEmailVerified) {
-            return reply.badRequest("Email is already verified")
-        }
-
-
-        const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken(); // generate email verification creds
-
-        user.emailVerificationToken = hashedToken;
-        user.emailVerificationExpiry = tokenExpiry;
-
-        await user.save({ validateBeforeSave: false });
-
-
-        await sendEmail({
-            fastify: request.server,
-            email: user?.email,
-            subject: "Please verify your email",
-            mailgenContent: emailVerificationMailgenContent(
-                user.username,
-                `${request.protocol}://${request.get(
-                    "host"
-                )}/api/v1/users/verify-email/${unHashedToken}`
-            ),
-        });
-
-
-
-        return reply.send({
-            message: "Email verification link sent successfully",
-            success: true
-        });
-
-    } catch (error) {
-        return reply.createError(500, error.message || "Failed to resend email verification");
-    }
-}
-
-
-
-
-
-
-
-export const forgotPasswordRequest = async (request, reply) => {
-}
-export const resetForgottenPassword = async (request, reply) => {
 }

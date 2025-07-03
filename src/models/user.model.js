@@ -64,8 +64,6 @@ const userSchema  = new Schema ({
       default: false,
     },
     refreshToken: String,
-    emailVerificationToken: String,
-    emailVerificationExpiry: Date,
     forgotPasswordToken: String,
     forgotPasswordExpiry: Date,
 }, { timestamps: true })

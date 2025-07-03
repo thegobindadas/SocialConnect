@@ -1,10 +1,10 @@
 import { 
     registerUser,
     loginUser,
-    resendEmailVerification,
-    verifyEmail,
     logoutUser,
     updateCurrentPassword,
+    forgotPasswordRequest,
+    resetForgottenPassword,
     updateUserProfilePic,
     getCurrentUser,
     updateUserProfile,
@@ -21,13 +21,13 @@ export default async function (fastify, opts) {
 
     fastify.post("/login", loginUser);
 
-    fastify.post("/resend-email-verification", {preHandler: [fastify.authenticate]}, resendEmailVerification);
-
-    fastify.post("/verify-email/:verificationToken", verifyEmail);
-
     fastify.post("/logout", {preHandler: [fastify.authenticate]}, logoutUser);
 
     fastify.post("/update/password", {preHandler: [fastify.authenticate]}, updateCurrentPassword);
+
+    fastify.post("/forgot-password", forgotPasswordRequest);
+
+    fastify.post("/reset-password/:resetToken", resetForgottenPassword);
 
     fastify.post("/update/profile-pic", {preHandler: [fastify.authenticate]}, updateUserProfilePic);
 
