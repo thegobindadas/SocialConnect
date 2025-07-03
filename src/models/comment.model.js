@@ -18,7 +18,8 @@ const commentSchema = new Schema({
     content: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: 1000
     },
     authorId: {
         type: Schema.Types.ObjectId,

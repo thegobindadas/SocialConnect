@@ -25,7 +25,8 @@ const userSchema  = new Schema ({
         lowercase: true,
         maxlength: 250,
         trim: true,
-        unique: true
+        unique: true,
+        //match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ // Email format validation
     },
     username: {
         type: String,
@@ -36,8 +37,16 @@ const userSchema  = new Schema ({
         unique: true,
         index: true
     },
-    tagline: String,
-    bio: String,
+    tagline: { 
+        type: String, 
+        maxlength: 160, 
+        trim: true 
+    },
+    bio: { 
+        type: String, 
+        maxlength: 1000, 
+        trim: true 
+    },
     profilePic: {
         url: { // cloudinary url of profile pic
             type: String,
@@ -53,15 +62,15 @@ const userSchema  = new Schema ({
             required: true
         },
     },
-    portfolioUrl: String,
+    portfolioUrl: { 
+        type: String, 
+        trim: true, 
+        match: /^https?:\/\/.+/i 
+    },
     password: {
         type: String,
         required: [true, "Password is required"],
         minlength: [6, "Password must be at least 6 characters long"],
-    },
-    isEmailVerified: {
-      type: Boolean,
-      default: false,
     },
     refreshToken: String,
     forgotPasswordToken: String,

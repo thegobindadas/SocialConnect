@@ -20,6 +20,7 @@ const likeSchema = new Schema({
 
 
 likeSchema.index({ authorId: 1, postId: 1 }, { unique: true, sparse: true });
+
 likeSchema.index({ authorId: 1, commentId: 1 }, { unique: true, sparse: true });
 
 

@@ -6,15 +6,18 @@ const postSchema = new Schema({
     content: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: 1000
     },
     tags: {
         type: String,
-        trim: true
+        lowercase: true,
+        trim: true,
     },
     link: {
         type: String,
-        trim: true
+        trim: true,
+        match: /^https?:\/\/.+/i
     },
     mediaUrls: [{
         url: {
