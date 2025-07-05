@@ -180,7 +180,7 @@ export const updatePost = async (request, reply) => {
 }
 
 
-// isBookmarkedByMe isLikedByMe totalComments totalLikes
+// isLikedByMe totalComments totalLikes
 export const getPostById = async (request, reply) => {
     try {
         

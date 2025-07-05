@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import { isValidObjectId } from "mongoose";
 import { Bookmark } from "../models/bookmark.model.js";
 
 
@@ -68,17 +68,58 @@ export const bookmarkUnBookmarkPost = async (request, reply) => {
         }
 
     } catch (error) {
-        return reply.createError("Failed to bookmark/unbookmark post")
+        return reply.createError(500, "Failed to bookmark/unbookmark post")
     }
 }
 
 
-
-// TODO: testing required
 export const getMyBookmarkPosts = async (request, reply) => {
     try {
-        
+
+        const userId = request.user._id
+        const page = parseInt(request.query.page) || 1;
+        const limit = parseInt(request.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to bookmark a post")
+        }
+
+
+        const bookmarks = await Bookmark.find({ authorId: userId })
+            .populate({
+                path: "postId",
+                match: { isPublished: true },
+                populate: {
+                    path: "authorId",
+                    select: "firstName lastName username profilePic"
+                }
+            })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const validBookmarks = bookmarks.filter(b => b.postId);
+
+        if (validBookmarks.length === 0) {
+            return reply.send({
+                data: [],
+                message: "No bookmarks found",
+                success: true
+            })
+            
+        }
+
+    
+
+        return reply.send({
+            data: validBookmarks,
+            message: "Bookmarks fetched successfully",
+            success: true
+        })
+
     } catch (error) {
-        return reply.createError("")
+        console.log(error)
+        return reply.createError(500, "Failed to get bookmarks")
     }
 }
