@@ -812,4 +812,47 @@ export const getUserProfile = async (request, reply) => {
 }
 
 
-// Search Users controller
+export const searchUsers = async (request, reply) => {
+    try {
+
+        const { query } = request.query;
+
+        if (!query || query.trim() === "") {
+            return reply.badRequest("Query parameter is required")
+        }
+
+
+        const searchRegex = new RegExp(query, "i"); // case-insensitive
+
+        const users = await User.find({
+            $or: [
+                { firstName: { $regex: searchRegex } },
+                { lastName: { $regex: searchRegex } },
+                { username: { $regex: searchRegex } },
+            ]
+        })
+        .select("firstName lastName username profilePic")
+        .limit(20); // Optional: limit number of results for performance
+
+
+        if (users.length === 0) {
+            return reply.send({
+                data: [],
+                message: "No users found",
+                success: true
+            })
+        }
+
+
+
+        return reply.send({
+            data: users,
+            message: "Users fetched successfully",
+            success: true,
+        });
+
+    } catch (error) {
+        console.error("Error searching users: ", error);
+        return reply.createError(500, "Failed to search users");
+    }
+};
