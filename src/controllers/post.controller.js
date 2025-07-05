@@ -1,5 +1,8 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose from "mongoose";
 import { Post } from "../models/post.model.js";
+import { Like } from "../models/like.model.js";
+import { Comment } from "../models/comment.model.js";
+import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
 
@@ -98,18 +101,15 @@ export const togglePostPublishStatus = async (request, reply) => {
             return reply.badRequest("Post id is required")
         }
 
-        if (!isValidObjectId(postId)) {
-            return reply.badRequest("Invalid post id")
-        }
 
-
-        const post = await Post.findOne({
-            _id: postId,
-            authorId: userId
-        })
+        const post = await Post.findById(postId)
 
         if (!post) {
             return reply.notFound("Post not found")
+        }
+
+        if(post.authorId.toString() !== userId) {
+            return reply.unauthorized("Unauthorized to update this post")
         }
 
 
@@ -120,7 +120,7 @@ export const togglePostPublishStatus = async (request, reply) => {
 
 
         return reply.send({
-            post,
+            data: post,
             message: "Post updated published status successfully",
             success: true
         })
@@ -134,6 +134,7 @@ export const togglePostPublishStatus = async (request, reply) => {
 export const updatePost = async (request, reply) => {
     try {
         
+        const { content, tags, link } = request.body
         const userId = request.user._id
 
         if (!userId) {
@@ -145,10 +146,6 @@ export const updatePost = async (request, reply) => {
 
         if (!postId) {
             return reply.badRequest("Post id is required")
-        }
-
-        if (!isValidObjectId(postId)) {
-            return reply.badRequest("Invalid post id")
         }
 
 
@@ -163,9 +160,6 @@ export const updatePost = async (request, reply) => {
         }
 
 
-        const { content, tags, link } = request.body
-
-
         post.content = content || post.content
         if (tags !== undefined) post.tags = tags
         if (link !== undefined) post.link = link
@@ -175,7 +169,7 @@ export const updatePost = async (request, reply) => {
 
 
         return reply.send({
-            post,
+            data: post,
             message: "Post updated successfully",
             success: true
         });
@@ -186,6 +180,7 @@ export const updatePost = async (request, reply) => {
 }
 
 
+// isBookmarkedByMe isLikedByMe totalComments totalLikes
 export const getPostById = async (request, reply) => {
     try {
         
@@ -316,16 +311,25 @@ export const getPostById = async (request, reply) => {
 
 
         const postDetails = await Post.aggregate(pipeline);
-        const post = postDetails?.[0] || null;
+        const post = postDetails?.[0] || null;     
 
         if (!post) {
             return reply.notFound("Post not found")
         }
 
+        
+        let isThisMyPost = false;
+        if (loggedInUserId) {
+            isThisMyPost = post?.author?._id?.toString() === loggedInUserId?.toString();
+        }
+
 
 
         return reply.send({
-            post,
+            post: {
+                ...post,
+                isThisMyPost
+            },
             message: "Post fetched successfully",
             success: true
         });
@@ -337,7 +341,48 @@ export const getPostById = async (request, reply) => {
 
 
 
-// TODO: testing required
+
+
+
+
+
+
+// GET	/user/:username
+export const getUserPosts = async (request, reply) => {
+    try {
+        
+        const { username } = request.params
+        const limit = parseInt(request.query.limit) || 10;
+        const page = parseInt(request.query.page) || 1;
+        const skip = (page - 1) * limit;
+
+
+        const user = await User.findOne({ username: username.toString() }).select("_id");
+
+        if (!user) {
+            return reply.notFound("User not found")
+        }
+
+
+        await Post.find({ authorId: user._id})
+            .populate({
+                path: "authorId",
+                select: "firstName lastName username profilePic"
+            })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+
+
+
+
+    } catch (error) {
+        return reply.createError(500, "Failed to get user posts")
+    }
+}
+
+
+// GET /feed
 export const getAllPosts = async (request, reply) => {
     try {
         
@@ -346,14 +391,7 @@ export const getAllPosts = async (request, reply) => {
     }
 }
 
-
-
-
-
-
-
-
-
+// DELETE	/:postId
 export const deletePost = async (request, reply) => {}
 export const updatePostMedia = async (request, reply) => {}
 export const deletePostMedia = async (request, reply) => {}

@@ -3,6 +3,7 @@ import {
     togglePostPublishStatus,
     updatePost,
     getPostById,
+    getUserPosts,
 } from "../controllers/post.controller.js";
 
 
@@ -23,6 +24,8 @@ export default async function (fastify, opts) {
         fastify.patch("/:postId/update", updatePost);
 
         fastify.get("/:postId", getPostById);
+
+        // fastify.get("/user/:username", getUserPosts);
 
     })
 }
