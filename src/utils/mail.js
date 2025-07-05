@@ -12,121 +12,257 @@ export const sendResetPasswordEmail = async (fastify, username, email, resetToke
             from: String(process.env.SMTP_SENDER_EMAIL),
             to: email,
             subject: "Reset Your Password",
-            html: `
-                <!DOCTYPE html>
+            html: `<!DOCTYPE html>
                 <html lang="en">
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Reset Your Password</title>
+                    <title>Password Reset - SocialConnect</title>
                     <style>
                         body {
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                            line-height: 1.6;
-                            color: #333;
-                            background-color: #f5f5f5;
+                            font-family: Arial, sans-serif;
+                            background-color: #f5f7fa;
                             margin: 0;
-                            padding: 0;
+                            padding: 20px;
                         }
-                        .container {
+
+                        .email-wrapper {
                             max-width: 600px;
-                            margin: 20px auto;
-                            padding: 20px;
-                            background-color: #ffffff;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                            margin: 0 auto;
+                            background: #ffffff;
+                            border-radius: 12px;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                            overflow: hidden;
                         }
+
                         .header {
+                            background-color: #4f46e5;
+                            padding: 30px 20px;
                             text-align: center;
-                            padding: 20px 0;
-                            border-bottom: 1px solid #eeeeee;
+                            color: #ffffff;
                         }
-                        .logo {
-                            max-width: 150px;
-                            height: auto;
+
+                        .brand-name {
+                            font-size: 24px;
+                            font-weight: bold;
+                            margin: 0;
                         }
+
                         .content {
-                            padding: 20px;
+                            padding: 30px 20px;
+                            color: #333333;
                         }
-                        .button {
+
+                        .content h2 {
+                            font-size: 20px;
+                            margin-bottom: 10px;
+                            color: #2d3748;
+                        }
+
+                        .content p {
+                            font-size: 14px;
+                            margin-bottom: 15px;
+                            color: #555555;
+                            line-height: 1.6;
+                        }
+
+                        .cta-button {
                             display: inline-block;
                             padding: 12px 24px;
                             background-color: #4f46e5;
                             color: #ffffff !important;
                             text-decoration: none;
-                            border-radius: 4px;
-                            font-weight: 600;
-                            margin: 20px 0;
+                            border-radius: 6px;
+                            font-weight: bold;
+                            margin-top: 20px;
                         }
-                        .button:hover {
+
+                        .cta-button:hover {
                             background-color: #4338ca;
                         }
+
+                        .alternative-link {
+                            margin-top: 20px;
+                            font-size: 12px;
+                            color: #777777;
+                            word-break: break-word;
+                        }
+
                         .footer {
                             text-align: center;
                             padding: 20px;
                             font-size: 12px;
-                            color: #666666;
+                            color: #999999;
                             border-top: 1px solid #eeeeee;
                         }
-                        h1 {
-                            color: #111827;
-                            margin-top: 0;
+
+                        .footer a {
+                            color: #4f46e5;
+                            text-decoration: none;
                         }
-                        p {
-                            margin-bottom: 16px;
-                        }
-                        .code {
-                            font-family: monospace;
-                            font-size: 24px;
-                            letter-spacing: 4px;
-                            padding: 10px 15px;
-                            background: #f3f4f6;
-                            border-radius: 4px;
-                            display: inline-block;
-                            margin: 10px 0;
+
+                        .footer a:hover {
+                            text-decoration: underline;
                         }
                     </style>
                 </head>
                 <body>
-                    <div class="container">
+                    <div class="email-wrapper">
                         <div class="header">
-                            <!-- Replace with your logo -->
-                            <img src="https://yourwebsite.com/logo.png" alt="Company Logo" class="logo">
+                            <div class="brand-name">SocialConnect</div>
                         </div>
-                        
+
                         <div class="content">
-                            <h1>Reset Your Password</h1>
+                            <h2>Password Reset Request</h2>
                             <p>Hello ${username},</p>
-                            <p>
-                                We received a request to reset your password. If you made this request, please click the button below to set a new password:
+                            <p>We received a request to reset your SocialConnect password. To proceed, please click the button below:</p>
+
+                            <p style="text-align: center;">
+                                <a href="${verificationLink}" class="cta-button">Reset Password</a>
                             </p>
-                            
-                            <div style="text-align: center;">
-                                <a href="${verificationLink}" class="button">
-                                    Reset Password
-                                </a>
-                            </div>
-                            
-                            <p>Or copy and paste this link into your browser:</p>
-                            <p><a href="${verificationLink}">Verification Link</a></p>
-                            
-                            
-                            <p>
-                                If you didn’t request a password reset, you can safely ignore this email.
-                            </p>
-                            
-                            <p>Best regards,<br>The gobindaDas Team</p>
+
+                            <p>If the button above doesn’t work, copy and paste this link into your browser:</p>
+                            <p class="alternative-link">${verificationLink}</p>
+
+                            <p>If you didn’t request this, please ignore this email. This link will expire in 24 hours.</p>
+
+                            <p>Best regards,<br>The SocialConnect Team</p>
                         </div>
-                        
+
                         <div class="footer">
-                            <p>&copy; 2025 gobindaDas. All rights reserved.</p>
+                            <p>&copy; 2025 SocialConnect. All rights reserved.</p>
                             <p>
-                                <a href="{{websiteUrl}}">Our Website</a> | 
-                                <a href="{{privacyPolicyUrl}}">Privacy Policy</a> | 
-                                <a href="{{contactUrl}}">Contact Us</a>
+                                <a href="{{websiteUrl}}">Website</a> |
+                                <a href="{{privacyPolicyUrl}}">Privacy Policy</a> |
+                                <a href="{{contactUrl}}">Contact</a>
                             </p>
                         </div>
                     </div>
+                </body>
+            </html>`
+        }
+
+
+        const mailResponse = await mailer.sendMail(mailOptions);
+
+
+
+        return mailResponse;
+
+    } catch (error) {
+        throw new Error(error);
+    }
+}
+
+
+export const sendResetPasswordSuccessEmail = async (fastify, username, email) => {
+    try {
+
+        const { mailer } = fastify
+
+
+        const mailOptions = {
+            from: String(process.env.SMTP_SENDER_EMAIL),
+            to: email,
+            subject: "Password Reset Successful",
+            html: `<!DOCTYPE html>
+                <html lang="en">
+                <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Password Reset Successful - SocialConnect</title>
+                <style>
+                    body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f5f7fa;
+                    margin: 0;
+                    padding: 20px;
+                    color: #333;
+                    }
+
+                    .email-wrapper {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                    overflow: hidden;
+                    }
+
+                    .header {
+                    background-color: #22c55e;
+                    padding: 30px 20px;
+                    text-align: center;
+                    color: #ffffff;
+                    }
+
+                    .brand-name {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin: 0;
+                    }
+
+                    .content {
+                    padding: 30px 20px;
+                    }
+
+                    .content h2 {
+                    font-size: 20px;
+                    margin-bottom: 10px;
+                    color: #2d3748;
+                    }
+
+                    .content p {
+                    font-size: 14px;
+                    margin-bottom: 15px;
+                    color: #555;
+                    line-height: 1.6;
+                    }
+
+                    .footer {
+                    text-align: center;
+                    padding: 20px;
+                    font-size: 12px;
+                    color: #999;
+                    border-top: 1px solid #eee;
+                    }
+
+                    .footer a {
+                    color: #4f46e5;
+                    text-decoration: none;
+                    }
+
+                    .footer a:hover {
+                    text-decoration: underline;
+                    }
+                </style>
+                </head>
+                <body>
+                <div class="email-wrapper">
+                    <div class="header">
+                    <div class="brand-name">SocialConnect</div>
+                    </div>
+
+                    <div class="content">
+                    <h2>Password Successfully Reset</h2>
+                    <p>Hello ${username},</p>
+
+                    <p>We wanted to let you know that your password for your SocialConnect account was successfully changed. If this was you, no further action is needed.</p>
+
+                    <p>If you did <strong>not</strong> perform this action, please reset your password immediately or contact our support team.</p>
+
+                    <p>Stay safe,<br>The SocialConnect Team</p>
+                    </div>
+
+                    <div class="footer">
+                    <p>&copy; 2025 SocialConnect. All rights reserved.</p>
+                    <p>
+                        <a href="{{websiteUrl}}">Website</a> |
+                        <a href="{{privacyPolicyUrl}}">Privacy Policy</a> |
+                        <a href="{{contactUrl}}">Contact</a>
+                    </p>
+                    </div>
+                </div>
                 </body>
             </html>`
         }

@@ -5,7 +5,7 @@ import { Follow } from "../models/follow.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
 import hashToken from "../utils/hashToken.js";
-import { sendResetPasswordEmail } from "../utils/mail.js";
+import { sendResetPasswordEmail, sendResetPasswordSuccessEmail } from "../utils/mail.js";
 
 
 
@@ -460,6 +460,8 @@ export const resetForgottenPassword = async (request, reply) => {
         user.forgotPasswordExpiry = undefined
 
         await user.save()
+
+        await sendResetPasswordSuccessEmail(request.server, user.username.toLowerCase(), user.email.toString())
 
 
 
