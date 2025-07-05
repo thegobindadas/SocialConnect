@@ -1,20 +1,9 @@
-import nodemailer from "nodemailer";
 
 
-
-const transporter = nodemailer.createTransport({  
-    host: process.env.SMTP_MAIL_HOST,
-    port: Number(process.env.SMTP_MAIL_PORT),
-    auth: {
-        user: process.env.SMTP_MAIL_USERNAME,
-        pass: process.env.SMTP_MAIL_PASSWORD
-    }
-});
-
-
-
-export const sendResetPasswordEmail = async (username, email, resetToken) => {
+export const sendResetPasswordEmail = async (fastify, username, email, resetToken) => {
     try {
+
+        const { mailer } = fastify
 
         const verificationLink = `${process.env.RESET_PASSWORD_REDIRECT_URL}?token=${resetToken}`;
        
@@ -29,7 +18,7 @@ export const sendResetPasswordEmail = async (username, email, resetToken) => {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>${"Reset Your Password"}</title>
+                    <title>Reset Your Password</title>
                     <style>
                         body {
                             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -106,15 +95,15 @@ export const sendResetPasswordEmail = async (username, email, resetToken) => {
                         </div>
                         
                         <div class="content">
-                            <h1>${"Reset Your Password"}</h1>
+                            <h1>Reset Your Password</h1>
                             <p>Hello ${username},</p>
                             <p>
-                                ${"We received a request to reset your password. If you made this request, please click the button below to set a new password:"}
+                                We received a request to reset your password. If you made this request, please click the button below to set a new password:
                             </p>
                             
                             <div style="text-align: center;">
                                 <a href="${verificationLink}" class="button">
-                                    ${"Reset Password"}
+                                    Reset Password
                                 </a>
                             </div>
                             
@@ -123,7 +112,7 @@ export const sendResetPasswordEmail = async (username, email, resetToken) => {
                             
                             
                             <p>
-                                ${"If you didn’t request a password reset, you can safely ignore this email."}
+                                If you didn’t request a password reset, you can safely ignore this email.
                             </p>
                             
                             <p>Best regards,<br>The gobindaDas Team</p>
@@ -143,13 +132,13 @@ export const sendResetPasswordEmail = async (username, email, resetToken) => {
         }
 
 
-        const mailResponse = await transporter.sendMail(mailOptions);
+        const mailResponse = await mailer.sendMail(mailOptions);
 
 
 
         return mailResponse;
 
     } catch (error) {
-        throw new Error(error.message);
+        throw new Error(error);
     }
 }

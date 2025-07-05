@@ -44,7 +44,7 @@ const generateAccessAndRefreshToken = async (reply, user) => {
 }
 
 
-
+// Auth controller
 /*
 import path from "path";
 import fs from "fs";
@@ -166,8 +166,8 @@ export const registerUser = async (request, reply) => {
             _id: userId,
             firstName: fields.firstName,
             lastName: fields.lastName,
-            email: fields.email,
-            username: fields.username,
+            email: fields.email.toLowerCase(),
+            username: fields.username.toLowerCase(),
             profilePic: profilePic || null,
             password: fields.password,
             isEmailVerified: false
@@ -214,7 +214,7 @@ export const loginUser = async (request, reply) => {
 
 
         const user = await User.findOne({
-            $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }]
+            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail.toLowerCase() }]
         })
 
         if (!user) {
@@ -258,8 +258,8 @@ export const loginUser = async (request, reply) => {
                     _id: user._id,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    email: user.email,
-                    username: user.username,
+                    email: user.email.toLowerCase(),
+                    username: user.username.toLowerCase(),
                     tagline: user.tagline  || null,
                     bio: user.bio || null,
                     profilePic: user.profilePic,
@@ -325,6 +325,157 @@ export const logoutUser = async (request, reply) => {
 }
 
 
+export const refreshAccessToken = async (request, reply) => {
+    try {
+        
+        const incomingRefreshToken = request.cookies?.refreshToken || request.body?.refreshToken || request.header("Authorization")?.replace("Bearer ", "")
+
+        if (!incomingRefreshToken) {
+            return reply.unauthorized("Unauthorized request. Refresh token is required")
+        }
+
+
+        const decodedToken = await request.refreshJwtVerify(incomingRefreshToken)
+
+        if (!decodedToken) {
+            return reply.unauthorized("Invalid or expired refresh token. Please log in again.")
+        }
+
+
+        const user = await User.findById(decodedToken._id)
+
+        if (!user) {
+            return reply.notFound("No user found associated with the provided refresh token.")
+        }
+
+
+        if (user.refreshToken !== hashToken(incomingRefreshToken)) {
+            return reply.unauthorized("Invalid or expired refresh token. Please log in again.")
+        }
+
+
+        // Generate JWT token
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(reply, user)
+
+
+        user.refreshToken = hashToken(refreshToken)
+        await user.save({ validateBeforeSave: false })
+
+
+
+        reply
+            .setCookie("accessToken", accessToken, {
+                path: "/",
+                secure: false,
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 1,
+            })
+            .setCookie("refreshToken", refreshToken, {
+                // domain: 'your.domain',
+                // sameSite: true,
+                path: "/",
+                secure: false, // Set to true in production
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 7,
+            })
+            .send({
+                accessToken,
+                refreshToken,
+                message: "Access token refreshed successfully",
+                success: true
+            })
+
+    } catch (error) {
+        return reply.createError(500, error.message || "Failed to refresh access token")
+    }
+}
+
+
+export const forgotPasswordRequest = async (request, reply) => {
+    try {
+
+        const { email } = request.body;
+
+        const user = await User.findOne({ email: email.toLowerCase() })
+
+        if (!user) {
+            return reply.notFound("User not found, Please provide a valid email address.")
+        }
+
+
+        const { unHashedToken, hashedToken, tokenExpiry } = await user.generateTemporaryToken()
+
+        user.forgotPasswordToken = hashedToken
+        user.forgotPasswordExpiry = tokenExpiry
+
+        await user.save()
+
+
+        await sendResetPasswordEmail(request.server, user.username.toLowerCase(), user.email.toString(), unHashedToken)
+
+
+
+        return reply.send({
+            message: "Password reset request sent successfully",
+            success: true
+        })
+        
+    } catch (error) {
+        console.log(error)
+        console.log(error.message)
+        return reply.createError(500, "Failed to request password reset")
+    }
+}
+
+
+export const resetForgottenPassword = async (request, reply) => {
+    try {
+        
+        const { resetToken } = request.params;
+        const { newPassword, confirmPassword } = request.body;
+
+        if (!resetToken || !newPassword || !confirmPassword) {
+            return reply.badRequest("All fields are required")
+        }
+            
+        if (newPassword !== confirmPassword) {
+            return reply.badRequest("Passwords do not match")
+        }
+            
+    
+        const hashedToken = hashToken(resetToken)
+
+        const user = await User.findOne({ 
+            forgotPasswordToken: hashedToken,
+            forgotPasswordExpiry: { $gt: Date.now() },
+        })
+
+        if (!user) {
+            return reply.badRequest("Invalid or expired reset token")
+        }
+
+
+        user.password = newPassword
+        user.forgotPasswordToken = undefined
+        user.forgotPasswordExpiry = undefined
+
+        await user.save()
+
+
+
+        return reply.send({
+            message: "Password reset successfully",
+            success: true
+        })
+
+    } catch (error) {
+        return reply.createError(500, error.message || "Failed to reset forgotten password")
+    }
+}
+
+
+
+// User controller
 export const updateCurrentPassword = async (request, reply) => {
     try {
         
@@ -381,195 +532,6 @@ export const updateCurrentPassword = async (request, reply) => {
 
     } catch (err) {
         return reply.createError(500, err.message || "Faild to update password")
-    }
-}
-
-
-export const forgotPasswordRequest = async (request, reply) => {
-    try {
-        
-        const { email } = request.body;
-
-        const user = await User.findOne({ email: email.toLowerCase() })
-
-        if (!user) {
-            throw new AppError("User not found, Please provide a valid email address.", 404);
-        }
-
-
-        const { unHashedToken, hashedToken, tokenExpiry } = await user.generateTemporaryToken()
-
-        user.forgotPasswordToken = hashedToken
-        user.forgotPasswordExpiry = tokenExpiry
-
-        await user.save({ validateBeforeSave: false })
-
-
-        await sendResetPasswordEmail(user.username, user.email.toString(), unHashedToken)
-
-
-
-        return reply.send({
-            message: "Password reset request sent successfully",
-            success: true
-        })
-        
-    } catch (error) {
-        return reply.createError(500, error.message || "Failed to request password reset")
-    }
-}
-
-
-export const resetForgottenPassword = async (request, reply) => {
-    try {
-        
-        const { resetToken } = request.params;
-        const { newPassword, confirmPassword } = request.body;
-
-        if (!resetToken || !newPassword || !confirmPassword) {
-            return reply.badRequest("All fields are required")
-        }
-            
-        if (newPassword !== confirmPassword) {
-            return reply.badRequest("Passwords do not match")
-        }
-            
-    
-        const hashedToken = hashToken(resetToken)
-
-        const user = await User.findOne({ 
-            forgotPasswordToken: hashedToken,
-            forgotPasswordExpiry: { $gt: Date.now() },
-        })
-
-        if (!user) {
-            return reply.badRequest("Invalid or expired reset token")
-        }
-
-
-        user.password = newPassword
-        user.forgotPasswordToken = undefined
-        user.forgotPasswordExpiry = undefined
-
-        await user.save()
-
-
-
-        return reply.send({
-            message: "Password reset successfully",
-            success: true
-        })
-
-    } catch (error) {
-        return reply.createError(500, error.message || "Failed to reset forgotten password")
-    }
-}
-
-
-export const updateUserProfilePic = async (request, reply) => {
-    try {
-        
-        const userId = request.user._id
-
-        if (!userId) {
-            return reply.unauthorized("Unauthorized request")
-        }
-
-
-        if (!request.isMultipart()) {
-            return reply.badRequest("No file found");
-        }
-
-
-        const parts = request.parts?.();
-
-        let filePart = null;
-
-        for await (const part of parts) {
-           
-            if (part.file && part.mimetype.includes("image")) {
-               
-                filePart = part;
-                break;
-            } else {
-                return reply.badRequest("No file found")
-            }
-        }
-
-
-        if (!filePart) {
-            return reply.badRequest("Profile picture is required");
-        }
-
-        if (!filePart.mimetype.includes("image")) {
-            return reply.badRequest("Only image files are allowed");
-        }
-
-
-        const user = await User.findById(userId)
-
-        if (!user) {
-            return reply.notFound("User not found")
-        }
-
-
-        let profilePic = {};
-
-        const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
-
-        const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
-
-        if (!uploadResult) {
-            return reply.badRequest("Failed to upload profile picture");
-        } else {
-            profilePic["url"] = uploadResult.url
-            profilePic["publicId"] = uploadResult.public_id
-            profilePic["type"] = uploadResult.resource_type
-        }
-
-
-        const updatedUser = await User.findByIdAndUpdate(
-            userId, 
-            {
-                $set: {
-                    profilePic: profilePic
-                }
-            }, 
-            {
-                new: true
-            }
-        )
-
-
-        let deletePhotoResult;
-        if (user.profilePic.publicId && user.profilePic.type) {
-            deletePhotoResult = await deleteFromCloudinary(request.server, user.profilePic.publicId, user.profilePic.type)
-        }
-
-        if (deletePhotoResult.result !== "ok") {
-            throw new Error(`Failed to delete previous profile picture from cloudinary: ${deletePhotoResult.result}`);
-        }
-
-
-
-        return reply.send({ 
-            user: {
-                _id: updatedUser._id,
-                firstName: updatedUser.firstName,
-                lastName: updatedUser.lastName,
-                email: updatedUser.email,
-                username: updatedUser.username,
-                tagline: updatedUser.tagline  || null,
-                bio: updatedUser.bio || null,
-                profilePic: updatedUser.profilePic,
-                portfolioUrl: updatedUser.portfolioUrl || null,
-            },
-            message: "Profile picture updated successfully",
-            success: true
-        })
-
-    } catch (err) {
-        reply.createError(500, err.message || "Faild to update profile picture")
     }
 }
 
@@ -685,68 +647,110 @@ export const updateUserProfile = async (request, reply) => {
 }
 
 
-export const refreshAccessToken = async (request, reply) => {
+export const updateUserProfilePic = async (request, reply) => {
     try {
         
-        const incomingRefreshToken = request.cookies?.refreshToken || request.body?.refreshToken || request.header("Authorization")?.replace("Bearer ", "")
+        const userId = request.user._id
 
-        if (!incomingRefreshToken) {
-            return reply.unauthorized("Unauthorized request. Refresh token is required")
+        if (!userId) {
+            return reply.unauthorized("Unauthorized request")
         }
 
 
-        const decodedToken = await request.refreshJwtVerify(incomingRefreshToken)
-
-        if (!decodedToken) {
-            return reply.unauthorized("Invalid or expired refresh token. Please log in again.")
+        if (!request.isMultipart()) {
+            return reply.badRequest("No file found");
         }
 
 
-        const user = await User.findById(decodedToken._id)
+        const parts = request.parts?.();
+
+        let filePart = null;
+
+        for await (const part of parts) {
+           
+            if (part.file && part.mimetype.includes("image")) {
+               
+                filePart = part;
+                break;
+            } else {
+                return reply.badRequest("No file found")
+            }
+        }
+
+
+        if (!filePart) {
+            return reply.badRequest("Profile picture is required");
+        }
+
+        if (!filePart.mimetype.includes("image")) {
+            return reply.badRequest("Only image files are allowed");
+        }
+
+
+        const user = await User.findById(userId)
 
         if (!user) {
-            return reply.notFound("No user found associated with the provided refresh token.")
+            return reply.notFound("User not found")
         }
 
 
-        if (user.refreshToken !== hashToken(incomingRefreshToken)) {
-            return reply.unauthorized("Invalid or expired refresh token. Please log in again.")
+        let profilePic = {};
+
+        const folder = `${CLOUD_FOLDERS.MAIN}/${userId}/@profile`;
+
+        const uploadResult = await uploadOnCloudinary(request.server, filePart, folder);
+
+        if (!uploadResult) {
+            return reply.badRequest("Failed to upload profile picture");
+        } else {
+            profilePic["url"] = uploadResult.url
+            profilePic["publicId"] = uploadResult.public_id
+            profilePic["type"] = uploadResult.resource_type
         }
 
 
-        // Generate JWT token
-        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(reply, user)
+        const updatedUser = await User.findByIdAndUpdate(
+            userId, 
+            {
+                $set: {
+                    profilePic: profilePic
+                }
+            }, 
+            {
+                new: true
+            }
+        )
 
 
-        user.refreshToken = hashToken(refreshToken)
-        await user.save({ validateBeforeSave: false })
+        let deletePhotoResult;
+        if (user.profilePic.publicId && user.profilePic.type) {
+            deletePhotoResult = await deleteFromCloudinary(request.server, user.profilePic.publicId, user.profilePic.type)
+        }
+
+        if (deletePhotoResult.result !== "ok") {
+            throw new Error(`Failed to delete previous profile picture from cloudinary: ${deletePhotoResult.result}`);
+        }
 
 
 
-        reply
-            .setCookie("accessToken", accessToken, {
-                path: "/",
-                secure: false,
-                httpOnly: true,
-                maxAge: 60 * 60 * 24 * 1,
-            })
-            .setCookie("refreshToken", refreshToken, {
-                // domain: 'your.domain',
-                // sameSite: true,
-                path: "/",
-                secure: false, // Set to true in production
-                httpOnly: true,
-                maxAge: 60 * 60 * 24 * 7,
-            })
-            .send({
-                accessToken,
-                refreshToken,
-                message: "Access token refreshed successfully",
-                success: true
-            })
+        return reply.send({ 
+            user: {
+                _id: updatedUser._id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                username: updatedUser.username,
+                tagline: updatedUser.tagline  || null,
+                bio: updatedUser.bio || null,
+                profilePic: updatedUser.profilePic,
+                portfolioUrl: updatedUser.portfolioUrl || null,
+            },
+            message: "Profile picture updated successfully",
+            success: true
+        })
 
-    } catch (error) {
-        return reply.createError(500, error.message || "Failed to refresh access token")
+    } catch (err) {
+        reply.createError(500, err.message || "Faild to update profile picture")
     }
 }
 
@@ -804,3 +808,6 @@ export const getUserProfile = async (request, reply) => {
         return reply.createError(500, err.message || "Failed to get user profile")
     }
 }
+
+
+// Search Users controller

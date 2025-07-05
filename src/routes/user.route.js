@@ -15,6 +15,7 @@ import {
 
 
 
+
 export default async function (fastify, opts) {
 
     fastify.post("/register", registerUser);

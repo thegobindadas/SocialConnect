@@ -110,12 +110,12 @@ await fastify.register(fastifyStatic, {
 
 await fastify.register(cloudinary, { url: `cloudinary://${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}@${process.env.CLOUDINARY_CLOUD_NAME}` });
 
-fastify.register(fastifyMailer, {
+await fastify.register(fastifyMailer, {
   defaults: { from: `Gobinda Das <${process.env.SMTP_SENDER_EMAIL}>`},
   transport: {
     host: process.env.SMTP_MAIL_HOST,
     port: process.env.SMTP_MAIL_PORT,
-    secure: true, // use TLS
+    secure: false, // use TLS
     auth: {
       user: process.env.SMTP_MAIL_USERNAME,
       pass: process.env.SMTP_MAIL_PASSWORD
