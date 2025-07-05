@@ -1,7 +1,7 @@
 import {
     followUnFollowUser,
     getUserFollowers,
-    getUserFollowings
+    getUserFollowings,
 } from "../controllers/follow.controller.js";
 
 
@@ -16,9 +16,7 @@ export default async function (fastify, opts) {
 
 
 
-
-
-        fastify.post('/:username', followUnFollowUser);
+        fastify.post("/:followingId", followUnFollowUser);
 
         fastify.get("/users/:username/followers", getUserFollowers);
         

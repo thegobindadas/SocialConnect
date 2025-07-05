@@ -1,8 +1,5 @@
-import { isValidObjectId } from "mongoose";
 import { User } from "../models/user.model.js";
 import { Follow } from "../models/follow.model.js";
-
-
 
 
 
@@ -20,10 +17,6 @@ export const followUnFollowUser = async (request, reply) => {
 
         if (!followingId) {
             return reply.badRequest("Following id is required")
-        }
-
-        if (!isValidObjectId(followingId)) {
-            return reply.badRequest("Invalid following id")
         }
 
 
@@ -55,7 +48,7 @@ export const followUnFollowUser = async (request, reply) => {
             if (!unfollow) {
                 return reply.badRequest("Failed to unfollow user")
             }
-                
+
 
             return reply.send({
                 following: false,
@@ -83,7 +76,7 @@ export const followUnFollowUser = async (request, reply) => {
         }
 
     } catch (error) {
-        return reply.createError(error)
+        return reply.createError(500, error.message)
     }
 }
 
@@ -107,9 +100,21 @@ export const getUserFollowers = async (request, reply) => {
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit)
-            .populate("followerId", "username fullName profilePic");
+            .populate("followerId", "firstName lastName username profilePic");
 
         const totalFollowers = await Follow.countDocuments({ followingId: user._id });
+
+
+        if (followers.length === 0 && totalFollowers === 0) {
+            return reply.send({
+                data: {
+                    followers: [],
+                    totalFollowers,
+                },
+                message: "No followers found",
+                sucess: true
+            })
+        }
 
 
 
@@ -137,16 +142,33 @@ export const getUserFollowings = async (request, reply) => {
         const page = parseInt(request.query.page) || 1;
         const limit = parseInt(request.query.limit) || 10;
 
+
         const user = await User.findOne({ username }).select("_id");
+
         if (!user) return reply.notFound("User not found.");
+
 
         const followings = await Follow.find({ followerId: user._id })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit)
-            .populate("followingId", "username fullName profilePic");
+            .populate("followingId", "firstName lastName username profilePic");
 
         const totalFollowings = await Follow.countDocuments({ followerId: user._id });
+
+
+        if (followings.length === 0 && totalFollowings === 0) {
+            return reply.send({
+                data: {
+                    followings: [],
+                    totalFollowings,
+                },
+                message: "No followings found",
+                sucess: true
+            })
+        }
+
+
 
         return reply.send({
             data: {

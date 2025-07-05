@@ -39,7 +39,7 @@ export default async function (fastify, opts) {
 
     fastify.post("/refresh", {preHandler: [fastify.authenticate]}, refreshAccessToken);
 
-    fastify.get("/:username/profile", getUserProfile);
+    fastify.get("/:username/profile", {preHandler: [fastify.authenticate]}, getUserProfile);
 
     fastify.get("/search", searchUsers);
 }

@@ -757,7 +757,6 @@ export const updateUserProfilePic = async (request, reply) => {
 }
 
 
-// Todo: testing required
 export const getUserProfile = async (request, reply) => {
     try {
         
@@ -786,7 +785,7 @@ export const getUserProfile = async (request, reply) => {
 
 
         // Determine if this is the currently logged-in user's profile
-        const loggedInUserId = request.user?._id || request.user?.id || null;
+        const loggedInUserId = request.user?._id || null;
 
         const isThisMyProfile = loggedInUserId && new mongoose.Types.ObjectId(loggedInUserId).equals(user._id);
 
