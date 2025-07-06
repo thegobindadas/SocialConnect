@@ -7,6 +7,7 @@ import {
     getAllPosts,
     updatePostMedia,
     deletePostMedia,
+    deletePost,
 } from "../controllers/post.controller.js";
 
 
@@ -36,5 +37,6 @@ export default async function (fastify, opts) {
 
         fastify.patch("/:postId/delete/media", deletePostMedia);
 
+        fastify.delete("/:postId", deletePost);
     })
 }

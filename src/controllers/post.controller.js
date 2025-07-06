@@ -658,6 +658,88 @@ export const deletePostMedia = async (request, reply) => {
 }
 
 
-// DELETE	/:postId
-export const deletePost = async (request, reply) => {}
+export const deletePost = async (request, reply) => {
+    const session = await Post.startSession();
+    session.startTransaction();
 
+    try {
+        const userId = request.user?._id;
+        const { postId } = request.params;
+
+        if (!postId) {
+            await session.abortTransaction();
+            session.endSession();
+            return reply.badRequest("Post ID is required.");
+        }
+
+        if (!userId) {
+            await session.abortTransaction();
+            session.endSession();
+            return reply.unauthorized("Unauthorized request.");
+        }
+
+
+        const post = await Post.findById(postId).session(session);
+
+        if (!post) {
+            await session.abortTransaction();
+            session.endSession();
+            return reply.notFound("Post not found.");
+        }
+
+        if (post.authorId.toString() !== userId.toString()) {
+            await session.abortTransaction();
+            session.endSession();
+            return reply.forbidden("You are not allowed to delete this post.");
+        }
+
+
+        // === 1. Delete all media from Cloudinary ===
+        const deleteMediaPromises = post.mediaUrls.map(media => 
+            deleteFromCloudinary(request.server, media.publicId, media.type)
+        );
+        await Promise.all(deleteMediaPromises);
+
+        
+        // === 2. Delete likes on the post ===
+        await Like.deleteMany({ postId: post._id }).session(session);
+
+
+        // === 3. Handle comments, subcomments and their likes ===
+        const comments = await Comment.find({ postId: post._id }).session(session);
+        const commentIds = comments.map(comment => comment._id);
+
+        if (commentIds.length > 0) {
+            // Delete likes on comments and subcomments
+            await Like.deleteMany({ commentId: { $in: commentIds } }).session(session);
+            
+            // Delete all comments and subcomments
+            await Comment.deleteMany({ postId: post._id }).session(session);
+        }
+
+
+        // === 4. Delete bookmarks related to the post ===
+        await Bookmark.deleteMany({ postId: post._id }).session(session);
+
+
+        // === 5. Delete the post itself ===
+        await Post.deleteOne({ _id: post._id }).session(session);
+
+
+        await session.commitTransaction();
+        session.endSession();
+
+
+
+        return reply.code(200).send({ 
+            message: "Post and all related data successfully deleted.",
+            success: true
+        });
+
+    } catch (error) {
+        console.error("Error in deletePost:", error);
+        await session.abortTransaction();
+        session.endSession();
+        return reply.createError(500, "Failed to delete post.");
+    }
+}
