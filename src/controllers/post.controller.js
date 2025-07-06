@@ -4,7 +4,7 @@ import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
 import { Bookmark } from "../models/bookmark.model.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
 
 
@@ -540,7 +540,7 @@ export const updatePostMedia = async (request, reply) => {
         }
 
         if (!userId) {
-            return reply.unauthorized("Unauthorized to create a post")
+            return reply.unauthorized("Unauthorized to update this post")
         }
 
 
@@ -568,7 +568,7 @@ export const updatePostMedia = async (request, reply) => {
                 const uploadResult = await uploadOnCloudinary(request.server, part, postFolder)
 
                 if (!uploadResult) {
-                    return reply.createError(500, "Failed to upload the file")
+                    return reply.createError(500, "Failed to upload the media file")
                 }
 
                 
@@ -586,7 +586,7 @@ export const updatePostMedia = async (request, reply) => {
         await post.save();
 
 
-        
+
         return reply.send({
             data: post,
             message: "Post media updated successfully",
@@ -599,8 +599,65 @@ export const updatePostMedia = async (request, reply) => {
 }
 
 
+export const deletePostMedia = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+        const { postId } = request.params
+        const { publicId } = request.body;
+
+        if (!postId) {
+            return reply.badRequest("Post id is required")
+        }
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to create a post")
+        }
+
+        if (!publicId) {
+            return reply.badRequest("Public id is required")
+        }
+
+
+        const post = await Post.findById(postId)
+
+        if (!post) {
+            return reply.notFound("Post not found")
+        }
+
+        if(post.authorId.toString() !== userId.toString()) {
+            return reply.unauthorized("Unauthorized to delete the post media")
+        }
+
+        
+        const mediaIndex = post.mediaUrls.findIndex(media => media.publicId === publicId);
+
+        if (mediaIndex === -1) {
+            return reply.notFound("Media not found in this post.");
+        }
+
+
+        const mediaToDelete = post.mediaUrls[mediaIndex];
+
+        await deleteFromCloudinary(request.server, mediaToDelete.publicId, mediaToDelete.type);
+
+        post.mediaUrls.splice(mediaIndex, 1);
+        await post.save();
+
+
+
+        return reply.send({
+            data: post,
+            message: "Post media deleted successfully",
+            success: true
+        });
+
+    } catch (error) {
+        return reply.createError(500, "Failed to delete post media")
+    }
+}
+
 
 // DELETE	/:postId
 export const deletePost = async (request, reply) => {}
 
-export const deletePostMedia = async (request, reply) => {}

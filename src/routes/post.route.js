@@ -6,6 +6,7 @@ import {
     getUserPosts,
     getAllPosts,
     updatePostMedia,
+    deletePostMedia,
 } from "../controllers/post.controller.js";
 
 
@@ -31,7 +32,9 @@ export default async function (fastify, opts) {
 
         fastify.get("/feed", getAllPosts);
 
-        fastify.patch("/:postId/media", updatePostMedia);
+        fastify.patch("/:postId/add/media", updatePostMedia);
+
+        fastify.patch("/:postId/delete/media", deletePostMedia);
 
     })
 }
