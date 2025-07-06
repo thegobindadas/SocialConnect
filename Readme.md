@@ -56,7 +56,7 @@ SocialConnect is a high-performance, scalable backend system for a modern social
 ```bash
 # Clone the repository
 git clone https://github.com/thegobindadas/SocialConnect.git
-cd socialconnect
+cd SocialConnect
 
 # Install dependencies
 npm install
