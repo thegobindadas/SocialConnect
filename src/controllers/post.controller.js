@@ -525,7 +525,82 @@ export const getAllPosts = async (request, reply) => {
 }
 
 
+export const updatePostMedia = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+        const { postId } = request.params
+
+        const parts = request.parts();
+        const mediaUrls = [];
+
+
+        if (!postId) {
+            return reply.badRequest("Post id is required")
+        }
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to create a post")
+        }
+
+
+        const post = await Post.findById(postId)
+
+        if (!post) {
+            return reply.notFound("Post not found")
+        }
+
+        if(post.authorId.toString() !== userId) {
+            return reply.unauthorized("Unauthorized to update this post")
+        }
+        
+
+        const postFolder = `${CLOUD_FOLDERS.MAIN}/${userId}/${postId}`;
+
+        for await (const part of parts) {
+            if (part.file) {
+                
+                if (!["image", "video"].some(type => part.mimetype.includes(type))) {
+                    return reply.badRequest("Only image and video files are allowed");
+                }
+
+
+                const uploadResult = await uploadOnCloudinary(request.server, part, postFolder)
+
+                if (!uploadResult) {
+                    return reply.createError(500, "Failed to upload the file")
+                }
+
+                
+                mediaUrls.push({
+                    url: uploadResult.url,
+                    publicId: uploadResult.public_id,
+                    type: uploadResult.resource_type,
+                });
+
+            }
+        }
+
+
+        post.mediaUrls = mediaUrls.length > 0 ? [...post.mediaUrls, ...mediaUrls] : [...post.mediaUrls];
+        await post.save();
+
+
+        
+        return reply.send({
+            data: post,
+            message: "Post media updated successfully",
+            success: true
+        });
+
+    } catch (error) {
+        return reply.createError(500, "Failed to update post media")        
+    }
+}
+
+
+
 // DELETE	/:postId
 export const deletePost = async (request, reply) => {}
-export const updatePostMedia = async (request, reply) => {}
+
 export const deletePostMedia = async (request, reply) => {}
