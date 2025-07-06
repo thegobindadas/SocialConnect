@@ -45,7 +45,7 @@ export const createComment = async (request, reply) => {
 
         const comment = await Comment.create({
             postId,
-            parentCommentId: validParentComment ? parentCommentId : null,
+            parentCommentId: validParentComment ? validParentComment._id : null,
             content,
             authorId: userId
         })
@@ -57,7 +57,7 @@ export const createComment = async (request, reply) => {
 
 
         return reply.send({
-            comment,
+            data: comment,
             message: "Comment created successfully",
             success: true
         })
@@ -67,7 +67,169 @@ export const createComment = async (request, reply) => {
     }
 }
 
- 
+
+export const updateComment = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+        const { commentId } = request.params
+        const { content } = request.body
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to update a comment")
+        }
+
+        if (!commentId || !content) {
+            return reply.badRequest("All fields are required")
+        }
+
+        if (!isValidObjectId(commentId)) {
+            return reply.badRequest("Invalid comment id")
+        }
+
+
+        const comment = await Comment.findById(commentId)
+
+        if (!comment) {
+            return reply.notFound("Comment not found")
+        }
+
+        if (comment.authorId.toString() !== userId.toString()) {
+            return reply.unauthorized("Unauthorized to update this comment")
+        }
+
+
+        comment.content = content || comment.content
+        await comment.save()
+
+
+
+        return reply.send({
+            comment,
+            message: "Comment updated successfully",
+            success: true
+        })
+
+    } catch (error) {
+        reply.createError(500, "Failed to update a comment")
+    }
+}
+
+
+export const updateReply = async (request, reply) => {
+    try {
+        
+        const userId = request.user._id
+        const { commentId, parentCommentId } = request.params;
+        const { content } = request.body
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to update a comment")
+        }
+
+        if (!commentId || !content || !parentCommentId) {
+            return reply.badRequest("All fields are required")
+        }
+
+        if (!isValidObjectId(commentId) || !isValidObjectId(parentCommentId)) {
+            return reply.badRequest("Invalid comment id or parent comment id")
+        }
+
+
+        const comment = await Comment.findOne({
+            _id: commentId,
+            parentCommentId: parentCommentId
+        })
+
+        if (!comment) {
+            return reply.notFound("Comment not found")
+        }
+
+        if (comment.authorId.toString() !== userId.toString()) {
+            return reply.unauthorized("Unauthorized to update this reply")
+        }
+
+
+        comment.content = content || comment.content
+        await comment.save()
+
+
+
+        return reply.send({
+            comment,
+            message: "Updated reply successfully",
+            success: true
+        })
+
+    } catch (error) {
+        reply.createError(500, "Failed to update a comment")
+    }
+}
+
+
+export const deleteComment = async (request, reply) => {
+    try {
+    
+        const userId = request.user._id
+        const { commentId } = request.params
+
+        if (!userId) {
+            return reply.unauthorized("Unauthorized to delete a comment")
+        }
+
+        if (!commentId) {
+            return reply.badRequest("Comment id is required")
+        }
+
+        if (!isValidObjectId(commentId)) {
+            return reply.badRequest("Invalid comment id")
+        }
+
+
+        const comment = await Comment.findById(commentId)
+
+        if (!comment) {
+            return reply.notFound("Comment not found")
+        }
+
+        if (comment.authorId.toString() !== userId.toString()) {
+            return reply.unauthorized("Unauthorized to delete this comment")
+        }
+
+
+        if (comment.parentCommentId === null) {
+
+            await comment.deleteOne()
+
+            return reply.send({
+                message: "Comment deleted with replies successfully",
+                success: true
+            })
+        }
+        
+
+        await Comment.deleteOne({ _id: commentId });
+
+
+
+        return reply.send({
+            message: "Comment deleted successfully",
+            success: true
+        })
+
+    } catch (error) {
+        return reply.createError(500, "Failed to delete a comment")
+    }
+}
+
+
+
+
+
+
+
+
+
 export const getCommentsByPostId = async (request, reply) => {
     try {
         
@@ -141,10 +303,12 @@ export const getCommentsByPostId = async (request, reply) => {
 
 
         return reply.send({
-            currentPage: page,
-            totalPages: Math.ceil(total / limit),
-            totalComments: total,
-            data: result,
+            data: {
+                data: result,
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalComments: total,
+            },
             message: "Comments fetched successfully",
             success: true
         })
@@ -208,103 +372,3 @@ export const getRepliesByCommentId = async (request, reply) => {
       return reply.createError(500, "Failed to get replies of a comment")
     }
 };
-
-
-export const updateComment = async (request, reply) => {
-    try {
-        
-        const userId = request.user._id
-        const { commentId } = request.params
-        const { content } = request.body
-
-        if (!userId) {
-            return reply.unauthorized("Unauthorized to update a comment")
-        }
-
-        if (!commentId || !content) {
-            return reply.badRequest("All fields are required")
-        }
-
-        if (!isValidObjectId(commentId)) {
-            return reply.badRequest("Invalid comment id")
-        }
-
-
-        const comment = await Comment.findById(commentId)
-
-        if (!comment) {
-            return reply.notFound("Comment not found")
-        }
-
-        if (comment.authorId.toString() !== userId.toString()) {
-            return reply.unauthorized("Unauthorized to update this comment")
-        }
-
-
-        comment.content = content || comment.content
-        await comment.save()
-
-
-
-        return reply.send({
-            comment,
-            message: "Comment updated successfully",
-            success: true
-        })
-
-    } catch (error) {
-        reply.createError(500, "Failed to update a comment")
-    }
-}
-
-
-export const deleteComment = async (request, reply) => {
-    try {
-     
-        const userId = request.user._id
-        const { commentId } = request.params
-
-        if (!userId) {
-            return reply.unauthorized("Unauthorized to delete a comment")
-        }
-
-        if (!commentId) {
-            return reply.badRequest("Comment id is required")
-        }
-
-
-        const comment = await Comment.findById(commentId)
-
-        if (!comment) {
-            return reply.notFound("Comment not found")
-        }
-
-        if (comment.authorId.toString() !== userId.toString()) {
-            return reply.unauthorized("Unauthorized to delete this comment")
-        }
-
-
-        if (comment.parentCommentId === null) {
-
-            await comment.deleteOne()
-
-            return reply.send({
-                message: "Comment deleted with replies successfully",
-                success: true
-            })
-        }
-        
-
-        await Comment.deleteOne({ _id: commentId });
-
-
-
-        return reply.send({
-            message: "Comment deleted successfully",
-            success: true
-        })
-
-    } catch (error) {
-        return reply.createError(500, "Failed to delete a comment")
-    }
-}

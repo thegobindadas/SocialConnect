@@ -3,6 +3,7 @@ import {
     getCommentsByPostId,
     getRepliesByCommentId,
     updateComment,
+    updateReply,
     deleteComment,
 } from "../controllers/comment.controller.js";
 
@@ -25,6 +26,8 @@ export default async function (fastify, opts) {
         fastify.get("/:commentId/replies", getRepliesByCommentId); // GET /api/v1/comments/:commentId/replies
 
         fastify.put("/:commentId", updateComment); // PUT /api/v1/comments/:commentId
+
+        fastify.put("/:commentId/:parentCommentId", updateReply); // PUT /api/v1/comments/:commentId/:parentCommentId
         
         fastify.delete("/:commentId", deleteComment); // DELETE /api/v1/comments/:commentId
 
