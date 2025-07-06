@@ -25,7 +25,7 @@ export default async function (fastify, opts) {
 
         fastify.get("/:postId", getPostById);
 
-        // fastify.get("/user/:username", getUserPosts);
+        fastify.get("/user/:username", getUserPosts);
 
     })
 }

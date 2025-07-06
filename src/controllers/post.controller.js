@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Post } from "../models/post.model.js";
 import { Like } from "../models/like.model.js";
 import { Comment } from "../models/comment.model.js";
+import { Bookmark } from "../models/bookmark.model.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { CLOUD_FOLDERS } from "../constants.js";
@@ -180,7 +181,6 @@ export const updatePost = async (request, reply) => {
 }
 
 
-// isLikedByMe totalComments totalLikes
 export const getPostById = async (request, reply) => {
     try {
         
@@ -340,14 +340,6 @@ export const getPostById = async (request, reply) => {
 }
 
 
-
-
-
-
-
-
-
-// GET	/user/:username
 export const getUserPosts = async (request, reply) => {
     try {
         
@@ -355,26 +347,76 @@ export const getUserPosts = async (request, reply) => {
         const limit = parseInt(request.query.limit) || 10;
         const page = parseInt(request.query.page) || 1;
         const skip = (page - 1) * limit;
+        const currentUserId = request.user._id;
 
 
-        const user = await User.findOne({ username: username.toString() }).select("_id");
+        // 1. Get the user by username
+        const user = await User.findOne({ username }).select('_id firstName lastName username profilePic');
 
         if (!user) {
             return reply.notFound("User not found")
         }
 
 
-        await Post.find({ authorId: user._id})
-            .populate({
-                path: "authorId",
-                select: "firstName lastName username profilePic"
-            })
+        // 2. Fetch posts authored by this user with pagination
+        const posts = await Post.find({ authorId: user._id })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
+            .lean();  // lean() for plain JS objects
+
+        // 3. Collect post IDs for bulk operations
+        const postIds = posts.map(post => post._id);
+
+
+        // 4. Get likes, comments, bookmarks for all these posts in bulk
+        const [likesData, commentsData, bookmarksData, myLikes] = await Promise.all([
+            Like.aggregate([
+                { $match: { postId: { $in: postIds } } },
+                { $group: { _id: '$postId', totalLikes: { $sum: 1 } } }
+            ]),
+            Comment.aggregate([
+                { $match: { postId: { $in: postIds } } },
+                { $group: { _id: '$postId', totalComments: { $sum: 1 } } }
+            ]),
+            Bookmark.find({ postId: { $in: postIds }, authorId: currentUserId }).lean(),
+            Like.find({ postId: { $in: postIds }, authorId: currentUserId }).lean()
+        ]);
+
+
+        const likesMap = new Map(likesData.map(item => [item._id.toString(), item.totalLikes]));
+        const commentsMap = new Map(commentsData.map(item => [item._id.toString(), item.totalComments]));
+        const bookmarkedPostIds = new Set(bookmarksData.map(b => b.postId.toString()));
+        const likedPostIds = new Set(myLikes.map(l => l.postId.toString()));
+
+
+        // 5. Format the posts
+        const formattedPosts = posts.map(post => ({
+            ...post,
+            author: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                username: user.username,
+                profilePic: user.profilePic
+            },
+            totalLikes: likesMap.get(post._id.toString()) || 0,
+            totalComments: commentsMap.get(post._id.toString()) || 0,
+            isLikedByMe: likedPostIds.has(post._id.toString()),
+            isBookmarkedByMe: bookmarkedPostIds.has(post._id.toString()),
+            isMyPost: post.authorId.toString() === currentUserId.toString()
+        }));
 
 
 
+        return reply.send({
+            data: {
+                posts: formattedPosts,
+                currentPage: page,
+                totalPosts: formattedPosts.length
+            },
+            message: "User posts fetched successfully",
+            success: true
+        });
 
     } catch (error) {
         return reply.createError(500, "Failed to get user posts")
