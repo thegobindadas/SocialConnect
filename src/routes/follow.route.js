@@ -16,11 +16,10 @@ export default async function (fastify, opts) {
 
 
 
-        fastify.post("/:followingId", followUnFollowUser);
+        fastify.post("/u/:followingId", followUnFollowUser);
 
-        fastify.get("/users/:username/followers", getUserFollowers);
+        fastify.get("/u/:username/followers", getUserFollowers);
         
-        fastify.get("/users/:username/followings", getUserFollowings);
-
+        fastify.get("/u/:username/followings", getUserFollowings);
     })
 }

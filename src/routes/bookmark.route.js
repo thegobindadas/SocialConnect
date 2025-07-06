@@ -15,8 +15,8 @@ export default async function (fastify, opts) {
 
 
 
-        fastify.post("/:postId", bookmarkUnBookmarkPost);
+        fastify.post("/p/:postId", bookmarkUnBookmarkPost);
 
-        fastify.get("/", getMyBookmarkPosts);
+        fastify.get("/me", getMyBookmarkPosts);
     })
 }

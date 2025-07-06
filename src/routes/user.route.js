@@ -25,19 +25,19 @@ export default async function (fastify, opts) {
 
     fastify.post("/logout", {preHandler: [fastify.authenticate]}, logoutUser);
 
-    fastify.post("/update/password", {preHandler: [fastify.authenticate]}, updateCurrentPassword);
+    fastify.post("/refresh-token", {preHandler: [fastify.authenticate]}, refreshAccessToken);
 
     fastify.post("/forgot-password", forgotPasswordRequest);
 
     fastify.post("/reset-password/:resetToken", resetForgottenPassword);
 
-    fastify.post("/update/profile-pic", {preHandler: [fastify.authenticate]}, updateUserProfilePic);
+    fastify.patch("/update/password", {preHandler: [fastify.authenticate]}, updateCurrentPassword);
+
+    fastify.patch("/update/profile-pic", {preHandler: [fastify.authenticate]}, updateUserProfilePic);
 
     fastify.get("/me", {preHandler: [fastify.authenticate]}, getCurrentUser);
 
-    fastify.post("/update/profile", {preHandler: [fastify.authenticate]}, updateUserProfile);
-
-    fastify.post("/refresh", {preHandler: [fastify.authenticate]}, refreshAccessToken);
+    fastify.patch("/update/profile", {preHandler: [fastify.authenticate]}, updateUserProfile);
 
     fastify.get("/:username/profile", {preHandler: [fastify.authenticate]}, getUserProfile);
 

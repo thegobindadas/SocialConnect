@@ -19,17 +19,16 @@ export default async function (fastify, opts) {
 
 
 
-        fastify.post("/", createComment); // POST /api/v1/comments
+        fastify.post("/:postId", createComment);
 
-        fastify.get("/post/:postId", getCommentsByPostId); // GET /api/v1/comments/post/:postId?page=1&limit=10
+        fastify.patch("/:commentId", updateComment);
 
-        fastify.get("/:commentId/replies", getRepliesByCommentId); // GET /api/v1/comments/:commentId/replies
+        fastify.patch("/:commentId/:parentCommentId", updateReply);
 
-        fastify.put("/:commentId", updateComment); // PUT /api/v1/comments/:commentId
+        fastify.get("/p/:postId", getCommentsByPostId);
 
-        fastify.put("/:commentId/:parentCommentId", updateReply); // PUT /api/v1/comments/:commentId/:parentCommentId
-        
-        fastify.delete("/:commentId", deleteComment); // DELETE /api/v1/comments/:commentId
+        fastify.get("/:commentId/replies", getRepliesByCommentId);
 
+        fastify.delete("/:commentId", deleteComment);
     })
 }

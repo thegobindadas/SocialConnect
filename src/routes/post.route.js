@@ -13,6 +13,7 @@ import {
 
 
 
+
 export default async function (fastify, opts) {
 
     fastify.register(async function (fastify) {
@@ -23,17 +24,17 @@ export default async function (fastify, opts) {
 
         fastify.post("/", createANewPost);
 
-        fastify.patch("/:postId/publish-toggle", togglePostPublishStatus);
+        fastify.patch("/:postId/status", togglePostPublishStatus);
 
         fastify.patch("/:postId/update", updatePost);
 
         fastify.get("/:postId", getPostById);
 
-        fastify.get("/user/:username", getUserPosts);
+        fastify.get("/u/:username", getUserPosts);
 
         fastify.get("/feed", getAllPosts);
 
-        fastify.patch("/:postId/add/media", updatePostMedia);
+        fastify.patch("/:postId/update/media", updatePostMedia);
 
         fastify.patch("/:postId/delete/media", deletePostMedia);
 

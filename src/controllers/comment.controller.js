@@ -9,8 +9,8 @@ export const createComment = async (request, reply) => {
     try {
         
         const userId = request.user._id
-        const { postId, parentCommentId } = request.query;
-        const { content } = request.body;
+        const { postId } = request.params;
+        const { parentCommentId, content } = request.body;
 
         if (!userId) {
             return reply.unauthorized("Unauthorized to comment on a post")

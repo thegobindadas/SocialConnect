@@ -15,9 +15,8 @@ export default async function (fastify, opts) {
 
 
 
-        fastify.post("/post/:postId", likeDislikePost);
+        fastify.post("/p/:postId", likeDislikePost);
 
-        fastify.post("/comment/:commentId", likeDislikeComment);
-
+        fastify.post("/c/:commentId", likeDislikeComment);
     })
 }
