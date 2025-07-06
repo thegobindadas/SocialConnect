@@ -223,13 +223,6 @@ export const deleteComment = async (request, reply) => {
 }
 
 
-
-
-
-
-
-
-
 export const getCommentsByPostId = async (request, reply) => {
     try {
         
@@ -322,6 +315,7 @@ export const getCommentsByPostId = async (request, reply) => {
 export const getRepliesByCommentId = async (request, reply) => {
     try {
 
+        const userId = request.user._id
         const { commentId } = request.params;
 
         if (!commentId) {
@@ -349,6 +343,16 @@ export const getRepliesByCommentId = async (request, reply) => {
         likes.forEach(l => {
             likeMap[l._id.toString()] = l.count;
         });
+
+
+        const likedByUser = userId
+            ? await Like.find({ commentId: { $in: replyIds }, authorId: userId }).select("commentId")
+            : [];
+
+        const likedMap = {};
+        likedByUser.forEach(like => {
+            likedMap[like.commentId.toString()] = true;
+        });
   
 
         const result = replies.map(r => ({
@@ -357,6 +361,7 @@ export const getRepliesByCommentId = async (request, reply) => {
             createdAt: r.createdAt,
             author: r.authorId,
             likeCount: likeMap[r._id.toString()] || 0,
+            isLikedByMe: likedMap[r._id.toString()] || false,
             isSubComment: false // no nested subreplies in this design
         }));
   
