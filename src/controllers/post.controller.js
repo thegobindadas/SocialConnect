@@ -424,14 +424,106 @@ export const getUserPosts = async (request, reply) => {
 }
 
 
-// GET /feed
 export const getAllPosts = async (request, reply) => {
     try {
+
+        const loggedInUserId = request.user._id;
+
+        // Pagination parameters
+        const page = parseInt(request.query.page) || 1;
+        const limit = parseInt(request.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
         
+        // Fetch paginated posts
+        const posts = await Post.find({ isPublished: true })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate({
+                path: 'authorId',
+                select: 'firstName lastName username profilePic',
+                model: User
+            })
+            .lean();
+
+        const postIds = posts.map(post => post._id);
+
+
+        // Parallel fetching likes, comments, bookmarks
+        const [likes, comments, bookmarks, totalPosts] = await Promise.all([
+            Like.aggregate([
+                { $match: { postId: { $in: postIds } } },
+                { $group: { _id: "$postId", totalLikes: { $sum: 1 }, userLikes: { $addToSet: "$authorId" } } }
+            ]),
+            Comment.aggregate([
+                { $match: { postId: { $in: postIds } } },
+                { $group: { _id: "$postId", totalComments: { $sum: 1 } } }
+            ]),
+            Bookmark.find({ postId: { $in: postIds }, authorId: loggedInUserId }).lean(),
+            Post.countDocuments({ isPublished: true }) // Total posts for pagination metadata
+        ]);
+
+
+        // Maps for quick lookup
+        const likesMap = {};
+        likes.forEach(item => {
+            likesMap[item._id.toString()] = {
+                totalLikes: item.totalLikes,
+                likedUserIds: item.userLikes.map(id => id.toString())
+            };
+        });
+
+
+        const commentsMap = {};
+        comments.forEach(item => {
+            commentsMap[item._id.toString()] = item.totalComments;
+        });
+
+
+        const bookmarkedPostIds = new Set(bookmarks.map(b => b.postId.toString()));
+
+
+        // Build enriched posts
+        const enrichedPosts = posts.map(post => {
+            const postIdStr = post._id.toString();
+            const likeInfo = likesMap[postIdStr] || { totalLikes: 0, likedUserIds: [] };
+            const commentCount = commentsMap[postIdStr] || 0;
+
+            return {
+                ...post,
+                author: post.authorId,
+                totalLikes: likeInfo.totalLikes,
+                isLikedByMe: likeInfo.likedUserIds.includes(loggedInUserId.toString()),
+                totalComments: commentCount,
+                isMyPost: post.authorId._id.toString() === loggedInUserId.toString(),
+                isBookmarkedByMe: bookmarkedPostIds.has(postIdStr)
+            };
+        });
+
+
+
+        return reply.send({
+            data: {
+                posts: enrichedPosts,
+                pagination: {
+                    page,
+                    limit,
+                    totalPosts,
+                    totalPages: Math.ceil(totalPosts / limit),
+                    hasNextPage: page * limit < totalPosts,
+                    hasPrevPage: page > 1
+                }
+            },
+            message: "All posts fetched successfully",
+            success: true
+        });
+
     } catch (error) {
         return reply.createError(500, "Failed to get all posts")
     }
 }
+
 
 // DELETE	/:postId
 export const deletePost = async (request, reply) => {}

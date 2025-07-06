@@ -4,6 +4,7 @@ import {
     updatePost,
     getPostById,
     getUserPosts,
+    getAllPosts,
 } from "../controllers/post.controller.js";
 
 
@@ -26,6 +27,8 @@ export default async function (fastify, opts) {
         fastify.get("/:postId", getPostById);
 
         fastify.get("/user/:username", getUserPosts);
+
+        fastify.get("/feed", getAllPosts);
 
     })
 }
